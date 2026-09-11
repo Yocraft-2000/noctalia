@@ -131,6 +131,10 @@ void DmenuProvider::ensureLoaded() const {
                 // Worker thread: `this` may be gone, so only forward state to the
                 // deferred callback below (main loop), which checks m_alive.
                 std::vector<Line> lines = parseLines(result.out);
+                // Partial stdout from a timed-out run is never published.
+                if (result.timedOut) {
+                  lines.clear();
+                }
                 if (result.timedOut || (!result && lines.empty())) {
                   kLog.warn("[{}] command failed (exit {})", entryId, result.exitCode);
                 }
