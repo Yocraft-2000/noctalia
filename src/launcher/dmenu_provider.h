@@ -33,6 +33,7 @@ public:
   [[nodiscard]] bool trackUsage() const override { return true; }
   [[nodiscard]] bool supportsAutoPaste() const override { return !m_entry.exec.has_value(); }
   [[nodiscard]] bool defaultIncludeInGlobalSearch() const override { return m_entry.global; }
+  [[nodiscard]] bool isLoading() const override { return m_loading && !m_loaded; }
 
   void setResultsChangedCallback(std::function<void()> callback) override { m_onResultsChanged = std::move(callback); }
 
