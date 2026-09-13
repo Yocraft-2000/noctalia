@@ -261,7 +261,17 @@ bool OverviewLauncherCapture::handleKeyboardEvent(const KeyboardEvent& event) {
     return true;
   }
 
-  m_openLauncher(initialQuery, instance->output, {});
+  // Open on the compositor's focused output. The exclusive-keyboard capture
+  // surface that received the keystroke is not reliably on the focused monitor
+  // (Umbriel can route it to a fixed output), so prefer the focus source and
+  // fall back to the surface's own output.
+  wl_output* target = instance->output;
+  if (m_platform != nullptr) {
+    if (wl_output* focused = m_platform->focusedInteractiveOutput(); focused != nullptr) {
+      target = focused;
+    }
+  }
+  m_openLauncher(initialQuery, target, {});
   destroySurfaces();
   return true;
 }
