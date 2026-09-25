@@ -36,11 +36,14 @@
 #include "wayland/wayland_connection.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <deque>
 #include <limits>
 #include <linux/input-event-codes.h>
 #include <memory>
+#include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <xkbcommon/xkbcommon-keysyms.h>
@@ -355,22 +358,159 @@ namespace {
     return keys;
   }
 
+  [[nodiscard]] bool workspaceKeyMatchesAssignment(std::string_view assignmentKey, const Workspace& workspace) {
+    if (assignmentKey.empty()) {
+      return false;
+    }
+    if (!workspace.id.empty() && assignmentKey == workspace.id) {
+      return true;
+    }
+    if (!workspace.name.empty() && assignmentKey == workspace.name) {
+      return true;
+    }
+    if (workspace.index > 0 && assignmentKey == std::to_string(workspace.index)) {
+      return true;
+    }
+    // Sway: id/name are "1: web" while assignments use "1". Skip when id != name
+    // so Hyprland named workspaces do not match numbered workspace "1".
+    if (workspace.id.empty() || workspace.id != workspace.name) {
+      return false;
+    }
+    auto leadingNumericAssignmentKey = [](std::string_view label) -> std::optional<std::string_view> {
+      std::size_t digits = 0;
+      while (digits < label.size() && std::isdigit(static_cast<unsigned char>(label[digits])) != 0) {
+        ++digits;
+      }
+      if (digits == 0) {
+        return std::nullopt;
+      }
+      if (digits < label.size() && label[digits] != ':' && label[digits] != ' ') {
+        return std::nullopt;
+      }
+      return label.substr(0, digits);
+    };
+    if (const auto prefix = leadingNumericAssignmentKey(workspace.name);
+        prefix.has_value() && assignmentKey == *prefix) {
+      return true;
+    }
+    return false;
+  }
+
+  [[nodiscard]] bool
+  assignmentOnActiveWorkspace(std::string_view workspaceKey, const std::vector<Workspace>& workspaces) {
+    if (workspaceKey.empty()) {
+      return false;
+    }
+    for (const auto& workspace : workspaces) {
+      if (workspace.active && workspaceKeyMatchesAssignment(workspaceKey, workspace)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  [[nodiscard]] bool outputHasWorkspaceMembershipData(const CompositorPlatform& platform, wl_output* output) {
+    return !platform.workspaceWindowAssignments(output).empty();
+  }
+
+  [[nodiscard]] bool hasWorkspaceMembershipData(
+      const CompositorPlatform& platform, const WaylandConnection& wayland, wl_output* outputFilter
+  ) {
+    if (outputFilter != nullptr) {
+      return outputHasWorkspaceMembershipData(platform, outputFilter);
+    }
+    for (const auto& output : wayland.outputs()) {
+      if (output.output != nullptr && outputHasWorkspaceMembershipData(platform, output.output)) {
+        return true;
+      }
+    }
+    return outputHasWorkspaceMembershipData(platform, nullptr);
+  }
+
+  [[nodiscard]] std::optional<std::string>
+  focusedWindowAssignmentKey(const CompositorPlatform& platform, wl_output* output) {
+    const auto focusedId = platform.focusedCompositorWindowId();
+    if (!focusedId.has_value() || focusedId->empty()) {
+      return std::nullopt;
+    }
+    const std::string focusedKey = canonicalWindowId(*focusedId);
+    const std::string focusedRaw = focusedKey.empty() ? *focusedId : focusedKey;
+    for (const auto& assignment : platform.workspaceWindowAssignments(output)) {
+      if (assignment.workspaceKey.empty() || assignment.windowId.empty()) {
+        continue;
+      }
+      const std::string key = canonicalWindowId(assignment.windowId);
+      if (key == focusedRaw || (compositors::isHyprland() && compositors::hyprland::windowIdsEqual(key, focusedRaw))) {
+        return assignment.workspaceKey;
+      }
+    }
+    return std::nullopt;
+  }
+
+  [[nodiscard]] std::vector<WorkspaceWindowAssignment> collectSwitcherAssignments(
+      const CompositorPlatform& platform, const WaylandConnection& wayland, wl_output* outputFilter,
+      bool currentWorkspaceOnly, bool& membershipFilterApplied
+  ) {
+    membershipFilterApplied = false;
+    if (!currentWorkspaceOnly || !hasWorkspaceMembershipData(platform, wayland, outputFilter)) {
+      return platform.workspaceWindowAssignments(outputFilter);
+    }
+
+    membershipFilterApplied = true;
+    std::vector<WorkspaceWindowAssignment> matched;
+    auto appendMatchingForOutput = [&](wl_output* output) {
+      if (output == nullptr) {
+        return;
+      }
+      const auto workspaces = platform.workspaces(output);
+      const bool hasActive =
+          std::ranges::any_of(workspaces, [](const Workspace& workspace) { return workspace.active; });
+      // No active workspace in the public list (e.g. Hyprland special): use focus.
+      const std::optional<std::string> focusedKey =
+          hasActive ? std::nullopt : focusedWindowAssignmentKey(platform, output);
+
+      for (const auto& assignment : platform.workspaceWindowAssignments(output)) {
+        if (assignment.windowId.empty()) {
+          continue;
+        }
+        if (assignmentOnActiveWorkspace(assignment.workspaceKey, workspaces)) {
+          matched.push_back(assignment);
+          continue;
+        }
+        if (focusedKey.has_value() && assignment.workspaceKey == *focusedKey) {
+          matched.push_back(assignment);
+        }
+      }
+    };
+
+    if (outputFilter != nullptr) {
+      appendMatchingForOutput(outputFilter);
+      return matched;
+    }
+
+    for (const auto& output : wayland.outputs()) {
+      appendMatchingForOutput(output.output);
+    }
+    return matched;
+  }
+
   void buildWindowEntries(
       const CompositorPlatform& platform, const WaylandConnection& wayland, IconResolver& iconResolver, int iconSize,
       wl_output* outputFilter, std::vector<WindowSwitcherEntry>& out, const std::optional<std::string>& focusedId,
-      const std::deque<std::string>* mruKeys
+      const std::deque<std::string>* mruKeys, bool currentWorkspaceOnly
   ) {
+    bool membershipFilterApplied = false;
+    const std::vector<WorkspaceWindowAssignment> assignments =
+        collectSwitcherAssignments(platform, wayland, outputFilter, currentWorkspaceOnly, membershipFilterApplied);
+
     std::unordered_map<std::string, WorkspaceWindowAssignment> assignmentById;
-    assignmentById.reserve(32);
-    for (const auto& assignment : platform.workspaceWindowAssignments(outputFilter)) {
-      if (assignment.windowId.empty()) {
-        continue;
-      }
+    assignmentById.reserve(assignments.size());
+    for (const auto& assignment : assignments) {
       const std::string key = canonicalWindowId(assignment.windowId);
       if (key.empty()) {
         continue;
       }
-      assignmentById[key] = assignment;
+      assignmentById.try_emplace(key, assignment);
     }
 
     std::unordered_map<std::string, ToplevelInfo> liveToplevelById;
@@ -421,6 +561,9 @@ namespace {
 
     for (const auto& [key, info] : liveToplevelById) {
       if (seenKeys.contains(key)) {
+        continue;
+      }
+      if (membershipFilterApplied) {
         continue;
       }
       WindowSwitcherCandidate candidate;
@@ -629,12 +772,21 @@ void WindowSwitcher::show(wl_output* output) {
     recordFocusedWindow();
   }
   m_output = output;
+  const auto focusedId = m_platform->focusedCompositorWindowId();
   refreshWindows();
 
   if (wasActive) {
     cycleSelection(1);
   } else {
-    m_selectedIndex = m_windows.size() > 1 ? 1 : 0;
+    bool focusedListedFirst = false;
+    if (focusedId.has_value() && !m_windows.empty()) {
+      const std::string frontKey = identityKeyForEntry(m_windows.front());
+      const std::string focusedKey = canonicalWindowId(*focusedId);
+      const std::string focusedCompare = focusedKey.empty() ? *focusedId : focusedKey;
+      focusedListedFirst = frontKey == focusedCompare
+          || (compositors::isHyprland() && compositors::hyprland::windowIdsEqual(frontKey, focusedCompare));
+    }
+    m_selectedIndex = (m_windows.size() > 1 && focusedListedFirst) ? 1 : 0;
   }
   m_active = true;
 
@@ -687,9 +839,10 @@ void WindowSwitcher::refreshWindows() {
 
   const int iconSize = static_cast<int>(std::round((Style::controlHeightLg + Style::spaceLg) * shellUiScale(m_config)));
   const bool allOutputs = m_config == nullptr || m_config->config().shell.windowSwitcher.showAllOutputs;
+  const bool currentWorkspaceOnly = m_config != nullptr && m_config->config().shell.windowSwitcher.currentWorkspaceOnly;
   buildWindowEntries(
       *m_platform, *m_wayland, m_iconResolver, iconSize, allOutputs ? nullptr : m_output, m_windows,
-      m_platform->focusedCompositorWindowId(), mruEnabled() ? &m_mruKeys : nullptr
+      m_platform->focusedCompositorWindowId(), mruEnabled() ? &m_mruKeys : nullptr, currentWorkspaceOnly
   );
 
   for (auto& entry : m_windows) {

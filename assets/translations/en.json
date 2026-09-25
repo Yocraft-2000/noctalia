@@ -3290,6 +3290,10 @@
           "description": "Choose the freestanding depth carousel or the boxed compact strip",
           "label": "Switcher Style"
         },
+        "window-switcher-current-workspace-only": {
+          "description": "List only windows on the active workspace; turn off to include windows from every workspace",
+          "label": "Current Workspace Only"
+        },
         "window-switcher-show-all-outputs": {
           "description": "List windows from every monitor; turn off to list only windows on the monitor showing the switcher",
           "label": "Show All Monitors"
