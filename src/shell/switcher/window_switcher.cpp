@@ -969,7 +969,8 @@ void WindowSwitcher::syncSelection(bool animate) {
 
     if (target.visible) {
       tile->bind(
-          renderer, m_windows[windowIndex], target.depth, target.showCaption, target.wideCaption, target.iconPlacement
+          renderer, m_windows[windowIndex], target.depth, target.showCaption, target.wideCaption, target.iconPlacement,
+          target.closePlacement
       );
       tile->setCardSize(target.width, target.height);
       tile->setZIndex(target.zIndex);
