@@ -87,7 +87,8 @@
       },
       "brightness": {
         "brightness": "Brightness",
-        "display": "Display"
+        "display": "Display",
+        "unavailable": "Brightness control unavailable"
       },
       "lock-keys": {
         "caps": "Caps",
@@ -1547,10 +1548,6 @@
           "soft": "Soft",
           "solid": "Solid"
         },
-        "window-switcher-style": {
-          "carousel": "Carousel",
-          "compact": "Compact"
-        },
         "password-style": {
           "filled-circles": "Filled Circles",
           "random-icons": "Random Icons"
@@ -1565,6 +1562,10 @@
           "up": "Up",
           "up-left": "Up Left",
           "up-right": "Up Right"
+        },
+        "window-switcher-style": {
+          "carousel": "Carousel",
+          "compact": "Compact"
         }
       },
       "theme": {
@@ -3257,6 +3258,10 @@
           "description": "Copy and Save in the region overlay deliver immediately; Enter and Space still open the editor",
           "label": "Skip Editor on Copy or Save"
         },
+        "settings-expand-all-groups": {
+          "description": "Open every settings group expanded instead of only the first one on each page",
+          "label": "Expand All Settings Groups"
+        },
         "settings-window-translucent": {
           "description": "Make the Settings background translucent for compositor effects",
           "label": "Settings Translucent Background"
@@ -3309,6 +3314,10 @@
         "window-switcher-show-count": {
           "description": "Show the current position and total window count above the previews",
           "label": "Show Window Count"
+        },
+        "window-switcher-style": {
+          "description": "Choose the freestanding depth carousel or the boxed compact strip",
+          "label": "Switcher Style"
         }
       },
       "system": {
@@ -4518,6 +4527,10 @@
           "description": "Show current temperature text",
           "label": "Show Temperature"
         },
+        "show-tooltip": {
+          "description": "Show a workspace's full name on hover when its pill does not already display it",
+          "label": "Show Name Tooltip"
+        },
         "show-unlock-hint": {
           "description": "Show the status card above the login box for unlock hints and auth prompts; errors and Caps Lock warnings still appear when this is off",
           "label": "Unlock Hint"
@@ -4533,6 +4546,10 @@
         "show-when-idle": {
           "description": "Keep the visualizer visible even when no media is playing",
           "label": "Show When Idle"
+        },
+        "show-when-unavailable": {
+          "description": "Keep the brightness widget visible when this monitor has no brightness control",
+          "label": "Show When Unavailable"
         },
         "show-window-title": {
           "description": "Show the window title next to its icon (only on horizontal bars)",
@@ -4818,7 +4835,9 @@
       "choose-color": "Choose wallpaper color",
       "close": "Close wallpaper panel",
       "color-title": "Wallpaper color",
+      "favorite-add": "Add to favorites",
       "favorite-current": "Add current wallpaper to favorites",
+      "favorite-remove": "Remove from favorites",
       "filter-placeholder": "Filter…",
       "flatten": "Flatten",
       "loading": "Loading wallpapers…",

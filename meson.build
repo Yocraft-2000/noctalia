@@ -533,6 +533,7 @@ _noctalia_sources = files(
   'src/notification/notification_display_name.cpp',
   'src/notification/notification_history_store.cpp',
   'src/pipewire/pipewire_service.cpp',
+  'src/pipewire/pipewire_error.cpp',
   'src/pipewire/audio_glyphs.cpp',
   'src/pipewire/audio_route_selection.cpp',
   'src/pipewire/wireplumber_mixer.cpp',
@@ -1002,6 +1003,7 @@ _noctalia_sources = files(
   'src/theme/kde_color_scheme.cpp',
   'src/theme/firefox_theme/css.cpp',
   'src/theme/firefox_theme/firefox_theme.cpp',
+  'src/theme/firefox_theme/manifest.cpp',
   'src/theme/firefox_theme/native_messaging.cpp',
   'src/theme/firefox_theme/settings.cpp',
   'src/theme/hook_runner.cpp',
@@ -1194,6 +1196,7 @@ if build_tests
     'event_link',
     'fcitx_status',
     'freedesktop_key_file',
+    'firefox_theme_manifest',
     'google_client_calendar_list',
     'google_client_reminders',
     'greeter_appearance_sync',
@@ -1231,6 +1234,7 @@ if build_tests
     'notification_history_utf8',
     'notification_internal_history',
     'path_browse',
+    'pipewire_error',
     'plugin_bindings',
     'plugin_catalog',
     'plugin_git_export',
@@ -1274,6 +1278,7 @@ if build_tests
     'widget_settings_schema',
     'window_switcher_membership',
     'workspace_alert_service',
+    'workspaces_widget',
   ]
 
   foreach test_name : _cpp_test_names

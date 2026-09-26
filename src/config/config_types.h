@@ -1146,6 +1146,7 @@ struct ShellConfig {
   AnimationConfig animation;
   std::string avatarPath;
   bool settingsShowAdvanced = true;
+  bool settingsExpandAllGroups = false;
   bool settingsWindowTranslucent = false;
   bool showLocation = true;
   bool appIconColorize = false;
@@ -1324,7 +1325,7 @@ struct SystemConfig {
 
 struct AudioConfig {
   bool enableOverdrive = false;
-  bool enableSounds = false;
+  bool enableSounds = true;
   float soundVolume = 0.5F;
   std::string soundTheme = "freedesktop";
 
@@ -1529,7 +1530,7 @@ constexpr EnumOption<ShellThemeMode> kShellThemeModes[] = {
 
 struct WallpaperFavorite {
   std::string path;
-  ThemeMode themeMode = ThemeMode::Auto;
+  std::optional<ThemeMode> themeMode;
   std::optional<PaletteSource> paletteSource;
   std::string builtinPalette;
   std::string communityPalette;
