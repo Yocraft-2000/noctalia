@@ -22,6 +22,7 @@
 #include "shell/surface/shadow.h"
 #include "shell/switcher/window_switcher_carousel_style.h"
 #include "shell/switcher/window_switcher_compact_style.h"
+#include "shell/switcher/window_switcher_membership.h"
 #include "shell/switcher/window_switcher_tile.h"
 #include "system/app_identity.h"
 #include "system/desktop_entry.h"
@@ -36,7 +37,6 @@
 #include "wayland/wayland_connection.h"
 
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <deque>
 #include <limits>
@@ -358,75 +358,6 @@ namespace {
     return keys;
   }
 
-  [[nodiscard]] bool workspaceKeyMatchesAssignment(std::string_view assignmentKey, const Workspace& workspace) {
-    if (assignmentKey.empty()) {
-      return false;
-    }
-    if (!workspace.id.empty() && assignmentKey == workspace.id) {
-      return true;
-    }
-    if (!workspace.name.empty() && assignmentKey == workspace.name) {
-      return true;
-    }
-    if (workspace.index > 0 && assignmentKey == std::to_string(workspace.index)) {
-      return true;
-    }
-    // Sway: id/name are "1: web" while assignments use "1". Skip when id != name
-    // so Hyprland named workspaces do not match numbered workspace "1".
-    if (workspace.id.empty() || workspace.id != workspace.name) {
-      return false;
-    }
-    auto leadingNumericAssignmentKey = [](std::string_view label) -> std::optional<std::string_view> {
-      std::size_t digits = 0;
-      while (digits < label.size() && std::isdigit(static_cast<unsigned char>(label[digits])) != 0) {
-        ++digits;
-      }
-      if (digits == 0) {
-        return std::nullopt;
-      }
-      if (digits < label.size() && label[digits] != ':' && label[digits] != ' ') {
-        return std::nullopt;
-      }
-      return label.substr(0, digits);
-    };
-    if (const auto prefix = leadingNumericAssignmentKey(workspace.name);
-        prefix.has_value() && assignmentKey == *prefix) {
-      return true;
-    }
-    return false;
-  }
-
-  [[nodiscard]] bool
-  assignmentOnActiveWorkspace(std::string_view workspaceKey, const std::vector<Workspace>& workspaces) {
-    if (workspaceKey.empty()) {
-      return false;
-    }
-    for (const auto& workspace : workspaces) {
-      if (workspace.active && workspaceKeyMatchesAssignment(workspaceKey, workspace)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  [[nodiscard]] bool outputHasWorkspaceMembershipData(const CompositorPlatform& platform, wl_output* output) {
-    return !platform.workspaceWindowAssignments(output).empty();
-  }
-
-  [[nodiscard]] bool hasWorkspaceMembershipData(
-      const CompositorPlatform& platform, const WaylandConnection& wayland, wl_output* outputFilter
-  ) {
-    if (outputFilter != nullptr) {
-      return outputHasWorkspaceMembershipData(platform, outputFilter);
-    }
-    for (const auto& output : wayland.outputs()) {
-      if (output.output != nullptr && outputHasWorkspaceMembershipData(platform, output.output)) {
-        return true;
-      }
-    }
-    return outputHasWorkspaceMembershipData(platform, nullptr);
-  }
-
   [[nodiscard]] std::optional<std::string>
   focusedWindowAssignmentKey(const CompositorPlatform& platform, wl_output* output) {
     const auto focusedId = platform.focusedCompositorWindowId();
@@ -447,51 +378,61 @@ namespace {
     return std::nullopt;
   }
 
+  [[nodiscard]] switcher_membership::OutputMembership
+  buildOutputMembership(const CompositorPlatform& platform, wl_output* output) {
+    switcher_membership::OutputMembership membership;
+    membership.workspaces = platform.workspaces(output);
+    membership.overlayKeys = platform.openOverlayWorkspaceKeys(output);
+    membership.assignments = platform.workspaceWindowAssignments(output);
+    const bool hasActive =
+        std::ranges::any_of(membership.workspaces, [](const Workspace& workspace) { return workspace.active; });
+    // Without an active workspace the focus is the only hint of what the user sees.
+    if (!hasActive) {
+      membership.focusedKey = focusedWindowAssignmentKey(platform, output).value_or(std::string{});
+    }
+    return membership;
+  }
+
+  [[nodiscard]] std::vector<switcher_membership::OutputMembership> collectOutputMemberships(
+      const CompositorPlatform& platform, const WaylandConnection& wayland, wl_output* outputFilter
+  ) {
+    std::vector<switcher_membership::OutputMembership> memberships;
+    const auto appendForOutput = [&](wl_output* output) {
+      if (output != nullptr) {
+        memberships.push_back(buildOutputMembership(platform, output));
+      }
+    };
+
+    if (outputFilter != nullptr) {
+      appendForOutput(outputFilter);
+      return memberships;
+    }
+    memberships.reserve(wayland.outputs().size());
+    for (const auto& output : wayland.outputs()) {
+      appendForOutput(output.output);
+    }
+    return memberships;
+  }
+
   [[nodiscard]] std::vector<WorkspaceWindowAssignment> collectSwitcherAssignments(
       const CompositorPlatform& platform, const WaylandConnection& wayland, wl_output* outputFilter,
       bool currentWorkspaceOnly, bool& membershipFilterApplied
   ) {
     membershipFilterApplied = false;
-    if (!currentWorkspaceOnly || !hasWorkspaceMembershipData(platform, wayland, outputFilter)) {
+    if (!currentWorkspaceOnly) {
+      return platform.workspaceWindowAssignments(outputFilter);
+    }
+
+    const std::vector<switcher_membership::OutputMembership> memberships =
+        collectOutputMemberships(platform, wayland, outputFilter);
+    // No output reports assignments: turning the filter on would then hide every window,
+    // since the switcher drops the toplevels it has no assignment for. Better unfiltered.
+    if (!switcher_membership::hasWorkspaceMembershipData(memberships)) {
       return platform.workspaceWindowAssignments(outputFilter);
     }
 
     membershipFilterApplied = true;
-    std::vector<WorkspaceWindowAssignment> matched;
-    auto appendMatchingForOutput = [&](wl_output* output) {
-      if (output == nullptr) {
-        return;
-      }
-      const auto workspaces = platform.workspaces(output);
-      const bool hasActive =
-          std::ranges::any_of(workspaces, [](const Workspace& workspace) { return workspace.active; });
-      // No active workspace in the public list (e.g. Hyprland special): use focus.
-      const std::optional<std::string> focusedKey =
-          hasActive ? std::nullopt : focusedWindowAssignmentKey(platform, output);
-
-      for (const auto& assignment : platform.workspaceWindowAssignments(output)) {
-        if (assignment.windowId.empty()) {
-          continue;
-        }
-        if (assignmentOnActiveWorkspace(assignment.workspaceKey, workspaces)) {
-          matched.push_back(assignment);
-          continue;
-        }
-        if (focusedKey.has_value() && assignment.workspaceKey == *focusedKey) {
-          matched.push_back(assignment);
-        }
-      }
-    };
-
-    if (outputFilter != nullptr) {
-      appendMatchingForOutput(outputFilter);
-      return matched;
-    }
-
-    for (const auto& output : wayland.outputs()) {
-      appendMatchingForOutput(output.output);
-    }
-    return matched;
+    return switcher_membership::assignmentsOnVisibleWorkspaces(memberships);
   }
 
   void buildWindowEntries(
