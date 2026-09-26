@@ -741,6 +741,16 @@ void HyprlandWorkspaceBackend::handleEvent(std::string_view event, std::string_v
     return;
   }
 
+  if (event == "activespecial" || event == "activespecialv2") {
+    // Toggling an already-populated special moves no window, so no other event tells us
+    // the monitor snapshot went stale. The payload is not parsed: j/monitors is the only
+    // source that tells whether the special is open, and it keys it per monitor.
+    refreshMonitors();
+    recomputeWorkspaceFlags();
+    notifyChanged();
+    return;
+  }
+
   if (event == "createworkspacev2") {
     const auto args = parseEventArgs(data, 2);
     const auto identity = parseEventWorkspaceIdentity(args[0], args[1]);

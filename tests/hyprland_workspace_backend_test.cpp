@@ -21,6 +21,7 @@ namespace {
     LegacySpecialOpen,
     TypedIdentity,
     TypedSpecialOverlay,
+    TypedSpecialOverlayClosed,
     NormalIdentity,
     Mixed,
     Malformed,
@@ -212,6 +213,11 @@ namespace {
     {"name": "WAYLAND-2", "activeWorkspace": {"address": "10", "type": "numbered", "name": "Ten"}}
   ])";
 
+  constexpr std::string_view kTypedSpecialOverlayClosedMonitorsJson = R"([
+    {"name": "WAYLAND-1", "activeWorkspace": {"address": "8", "type": "numbered", "name": "Eight"}},
+    {"name": "WAYLAND-2", "activeWorkspace": {"address": "10", "type": "numbered", "name": "Ten"}}
+  ])";
+
   constexpr std::string_view kTypedSpecialOverlayClientsJson = R"([
     {
       "address": "0x101",
@@ -270,6 +276,8 @@ namespace {
         return std::string(kTypedWorkspacesJson);
       case SnapshotSchema::TypedSpecialOverlay:
         return std::string(kTypedSpecialOverlayWorkspacesJson);
+      case SnapshotSchema::TypedSpecialOverlayClosed:
+        return std::string(kTypedSpecialOverlayWorkspacesJson);
       case SnapshotSchema::NormalIdentity:
         return std::string(kNormalWorkspacesJson);
       case SnapshotSchema::Mixed:
@@ -291,6 +299,9 @@ namespace {
       if (schema == SnapshotSchema::TypedSpecialOverlay) {
         return std::string(kTypedSpecialOverlayMonitorsJson);
       }
+      if (schema == SnapshotSchema::TypedSpecialOverlayClosed) {
+        return std::string(kTypedSpecialOverlayClosedMonitorsJson);
+      }
       return std::string(schema == SnapshotSchema::NormalIdentity ? kNormalMonitorsJson : kRejectedMonitorsJson);
     }
     if (command.contains("j/clients")) {
@@ -304,6 +315,9 @@ namespace {
         return std::string(kTypedClientsJson);
       }
       if (schema == SnapshotSchema::TypedSpecialOverlay) {
+        return std::string(kTypedSpecialOverlayClientsJson);
+      }
+      if (schema == SnapshotSchema::TypedSpecialOverlayClosed) {
         return std::string(kTypedSpecialOverlayClientsJson);
       }
       return schema == SnapshotSchema::NormalIdentity ? std::string(kNormalClientsJson) : "[]";
@@ -647,6 +661,38 @@ namespace {
     return ok;
   }
 
+  // Toggling an already-populated special workspace changes no window, so the switcher only
+  // learns about it when activespecialv2 refreshes the monitor snapshot.
+  bool checkSpecialWorkspaceToggle(HyprlandWorkspaceBackend& backend, std::atomic<SnapshotSchema>& schema) {
+    bool ok = true;
+    auto* left = reinterpret_cast<wl_output*>(0x1);
+    auto& eventHandler = static_cast<compositors::hyprland::HyprlandEventHandler&>(backend);
+
+    ok = check(
+             backend.openOverlayWorkspaceKeys(left) == std::vector<std::string>{"special:magic"},
+             "the special workspace must be open before the toggle"
+         )
+        && ok;
+
+    schema.store(SnapshotSchema::TypedSpecialOverlayClosed);
+    eventHandler.handleEvent("activespecialv2", "special:magic,special:magic");
+    ok = check(
+             backend.openOverlayWorkspaceKeys(left).empty(),
+             "closing an already-populated special workspace must clear the overlay"
+         )
+        && ok;
+
+    schema.store(SnapshotSchema::TypedSpecialOverlay);
+    eventHandler.handleEvent("activespecial", "special:magic");
+    ok = check(
+             backend.openOverlayWorkspaceKeys(left) == std::vector<std::string>{"special:magic"},
+             "reopening an already-populated special workspace must restore the overlay"
+         )
+        && ok;
+
+    return ok;
+  }
+
 } // namespace
 
 int main() {
@@ -745,6 +791,7 @@ int main() {
     backend.syncFromCompositor();
 
     ok = checkPerOutputSpecialWorkspace(backend) && ok;
+    ok = checkSpecialWorkspaceToggle(backend, schema) && ok;
   }
 
   stop.store(true);
