@@ -1522,7 +1522,7 @@ ColorSpec WorkspacesWidget::workspaceTextColor(const Workspace& workspace, wl_ou
   if (workspace.occupied) {
     return m_occupiedColor;
   }
-  ColorSpec color = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurfaceVariant));
+  ColorSpec color = m_emptyColor;
   color.alpha *= 0.55F;
   return color;
 }

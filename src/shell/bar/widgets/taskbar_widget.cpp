@@ -3483,7 +3483,7 @@ ColorSpec TaskbarWidget::workspaceTextColor(const WorkspaceModel& model) const {
     return m_occupiedColor;
   }
 
-  ColorSpec color = widgetForegroundOr(colorSpecFromRole(ColorRole::OnSurfaceVariant));
+  ColorSpec color = m_emptyColor;
   color.alpha *= 0.55F;
   return color;
 }
