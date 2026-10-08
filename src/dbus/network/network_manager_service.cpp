@@ -12,6 +12,7 @@
 #include <sdbus-c++/IProxy.h>
 #include <sdbus-c++/Types.h>
 #include <set>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -34,6 +35,9 @@ namespace {
   constexpr auto kNmAccessPointInterface = "org.freedesktop.NetworkManager.AccessPoint";
   constexpr auto k_nmIp4ConfigInterface = "org.freedesktop.NetworkManager.IP4Config";
   constexpr auto kPropertiesInterface = "org.freedesktop.DBus.Properties";
+  const sdbus::ServiceName kDbusBusName{"org.freedesktop.DBus"};
+  const sdbus::ObjectPath kDbusObjectPath{"/org/freedesktop/DBus"};
+  constexpr auto kDbusInterface = "org.freedesktop.DBus";
 
   using ConnectionSettings = std::map<std::string, std::map<std::string, sdbus::Variant>>;
   using VariantMap = std::map<std::string, sdbus::Variant>;
@@ -151,15 +155,44 @@ struct NetworkManagerService::PendingAccessPointActivation {
 };
 
 NetworkManagerService::NetworkManagerService(SystemBus& bus) : m_bus(bus) {
-  if (!bus.nameHasOwner("org.freedesktop.NetworkManager")) {
-    throw sdbus::Error(
-        sdbus::Error::Name{"org.freedesktop.DBus.Error.ServiceUnknown"},
-        "The name org.freedesktop.NetworkManager was not provided by any .service files"
-    );
-  }
   m_lifetimeToken = std::make_shared<int>(0);
-  m_nm = sdbus::createProxy(m_bus.connection(), kNmBusName, kNmObjectPath);
+  // NetworkManager can start after the shell or restart mid-session. Follow its bus name instead of
+  // fixing availability at construction, or a shell started while it is down never shows a network.
+  m_busDaemon = sdbus::createProxy(m_bus.connection(), kDbusBusName, kDbusObjectPath);
+  m_busDaemon->uponSignal("NameOwnerChanged")
+      .onInterface(kDbusInterface)
+      .call([this](const std::string& name, const std::string& oldOwner, const std::string& newOwner) {
+        if (name != kNmBusName) {
+          return;
+        }
+        if (newOwner.empty()) {
+          kLog.info("NetworkManager left the bus");
+          detach();
+          return;
+        }
+        // Already attached to this owner when the constructor saw it before the signal arrived.
+        if (oldOwner.empty() && available()) {
+          return;
+        }
+        kLog.info("NetworkManager appeared on the bus");
+        detach();
+        try {
+          attach();
+        } catch (const sdbus::Error& e) {
+          kLog.warn("NetworkManager attach failed: {}", e.what());
+          detach();
+        }
+      });
 
+  if (bus.nameHasOwner(kNmBusName)) {
+    attach();
+  } else {
+    kLog.info("NetworkManager not on the bus; waiting for it to appear");
+  }
+}
+
+void NetworkManagerService::attach() {
+  m_nm = sdbus::createProxy(m_bus.connection(), kNmBusName, kNmObjectPath);
   m_nm->uponSignal("PropertiesChanged")
       .onInterface(kPropertiesInterface)
       .call([this](
@@ -211,11 +244,63 @@ NetworkManagerService::NetworkManagerService(SystemBus& bus) : m_bus(bus) {
   requestScan();
 }
 
+void NetworkManagerService::detach() {
+  if (m_nm == nullptr) {
+    return;
+  }
+  // A new NetworkManager instance numbers its objects afresh, and replies still in flight from the old
+  // one must not land in the new state: expire them together with every proxy and cached path.
+  m_lifetimeToken = std::make_shared<int>(0);
+  m_nm.reset();
+  m_activeConnection.reset();
+  m_activeDevice.reset();
+  m_activeAp.reset();
+  m_wifiDevices.clear();
+  m_vpnActiveWatchers.clear();
+  m_pendingApActivations.clear();
+  m_retiredApActivations.clear();
+  m_activeConnectionPath.clear();
+  m_activeDevicePath.clear();
+  m_activeApPath.clear();
+  m_accessPoints.clear();
+  m_vpnConnections.clear();
+  m_savedSsids.clear();
+  m_savedWiredConnectionPaths.clear();
+  m_savedCellularConnectionPaths.clear();
+  m_refreshInFlight = false;
+  m_refreshQueued = false;
+  m_rebindInFlight = false;
+  m_rebindQueued = false;
+  m_emitOnNextRefresh = false;
+  m_anyVpnConnected = false;
+  m_anyCellularActive = false;
+  endScan();
+  m_scanBaselineLastScan = 0;
+  ++m_scanGeneration;
+  m_pendingLocalWirelessEnabled.reset();
+
+  const bool hadSnapshot = m_hasStateSnapshot;
+  m_state = {};
+  m_hasStateSnapshot = false;
+  const auto completions = std::exchange(m_pendingWirelessCompletions, {});
+  for (const auto& completion : completions) {
+    if (auto onComplete = std::move(*completion)) {
+      onComplete(false);
+    }
+  }
+  if (hadSnapshot && m_changeCallback) {
+    m_changeCallback(m_state, NetworkChangeOrigin::External);
+  }
+}
+
 NetworkManagerService::~NetworkManagerService() { m_lifetimeToken.reset(); }
 
 void NetworkManagerService::setChangeCallback(ChangeCallback callback) { m_changeCallback = std::move(callback); }
 
 void NetworkManagerService::refresh() {
+  if (!available()) {
+    return;
+  }
   const std::weak_ptr<int> lifetimeToken = m_lifetimeToken;
   if (m_refreshInFlight) {
     m_refreshQueued = true;
@@ -295,6 +380,9 @@ void NetworkManagerService::refresh() {
 }
 
 void NetworkManagerService::requestScan() {
+  if (!available()) {
+    return;
+  }
   const std::weak_ptr<int> lifetimeToken = m_lifetimeToken;
   const std::uint64_t generation = ++m_scanGeneration;
   collectWifiDevices([this, lifetimeToken,
@@ -361,7 +449,7 @@ bool NetworkManagerService::activateAccessPoint(const AccessPointInfo& ap) {
             }
             if (err.has_value()) {
               kLog.debug("ActivateConnection(/) failed for ssid={}: {}; trying AddAndActivate", ap.ssid, err->what());
-              if (!ap.secured) {
+              if (!ap.requiresCredentials()) {
                 addAndActivateAccessPoint(ap, std::nullopt);
               } else {
                 m_emitOnNextRefresh = true;
@@ -379,7 +467,7 @@ bool NetworkManagerService::activateAccessPoint(const AccessPointInfo& ap) {
     }
   }
 
-  if (ap.secured) {
+  if (ap.requiresCredentials()) {
     return false;
   }
   return addAndActivateAccessPoint(ap, std::nullopt);
@@ -392,7 +480,7 @@ bool NetworkManagerService::activateAccessPoint(const AccessPointInfo& ap, const
   if (ap.active) {
     return true;
   }
-  if (ap.secured && psk.empty()) {
+  if (ap.requiresCredentials() && psk.empty()) {
     return false;
   }
   // An 802.1X AP has no pre-shared key to accept. Falling through would build a
@@ -434,12 +522,16 @@ bool NetworkManagerService::addAndActivateAccessPoint(
     const AccessPointInfo& ap, const std::optional<std::string>& psk,
     const std::optional<network_enterprise::EnterpriseCredentials>& credentials
 ) {
+  if (!available()) {
+    return false;
+  }
   ConnectionSettings settings;
   if (ap.secured) {
     // Minimal secured-wifi settings — NM fills in ssid from the specific_object.
+    // OWE uses key-mgmt owe with no psk (Enhanced Open is passwordless).
     settings["802-11-wireless-security"]["key-mgmt"] =
         sdbus::Variant{std::string(network_manager_security::keyManagementName(ap.keyManagement))};
-    if (psk.has_value()) {
+    if (psk.has_value() && ap.keyManagement != network_manager_security::KeyManagement::Owe) {
       settings["802-11-wireless-security"]["psk"] = sdbus::Variant{*psk};
     }
     if (credentials.has_value()) {
@@ -669,6 +761,9 @@ void NetworkManagerService::deleteUnsavedConnection(const std::string& connectio
 }
 
 bool NetworkManagerService::activateVpnConnection(const VpnConnectionInfo& vpn) {
+  if (!available()) {
+    return false;
+  }
   if (vpn.path.empty()) {
     return false;
   }
@@ -721,6 +816,9 @@ bool NetworkManagerService::deactivateCellularConnection() {
 bool NetworkManagerService::deactivateConnectionsByProfilePaths(
     const std::set<std::string>& profilePaths, std::string_view kindTag
 ) {
+  if (!available()) {
+    return false;
+  }
   const std::string tag{kindTag};
   const std::weak_ptr<int> lifetimeToken = m_lifetimeToken;
   try {
@@ -946,6 +1044,12 @@ void NetworkManagerService::tryActivateCellularConnection(
 }
 
 void NetworkManagerService::setWirelessEnabled(bool enabled, WirelessEnabledCompletion onComplete) {
+  if (!available()) {
+    if (onComplete) {
+      onComplete(false);
+    }
+    return;
+  }
   if (enabled) {
     const RfkillSwitchResult rfkillResult = setRfkillSoftBlocked(RfkillDeviceType::Wlan, false);
     if (rfkillResult.hardBlocked) {
@@ -962,6 +1066,15 @@ void NetworkManagerService::setWirelessEnabled(bool enabled, WirelessEnabledComp
   if (enabled != m_state.wirelessEnabled) {
     m_pendingLocalWirelessEnabled = enabled;
   }
+  auto completion = std::make_shared<WirelessEnabledCompletion>(std::move(onComplete));
+  m_pendingWirelessCompletions.push_back(completion);
+  auto complete = [this, completion](bool success) {
+    auto callback = std::move(*completion);
+    std::erase(m_pendingWirelessCompletions, completion);
+    if (callback) {
+      callback(success);
+    }
+  };
   // Async: the write is polkit-gated; a sync call can block the main loop
   // while authorization is pending.
   const std::weak_ptr<int> lifetimeToken = m_lifetimeToken;
@@ -969,7 +1082,7 @@ void NetworkManagerService::setWirelessEnabled(bool enabled, WirelessEnabledComp
     m_nm->setPropertyAsync("WirelessEnabled")
         .onInterface(kNmInterface)
         .toValue(enabled)
-        .uponReplyInvoke([this, lifetimeToken, enabled, onComplete](std::optional<sdbus::Error> err) {
+        .uponReplyInvoke([this, lifetimeToken, enabled, complete](std::optional<sdbus::Error> err) {
           if (lifetimeToken.expired()) {
             return;
           }
@@ -978,25 +1091,19 @@ void NetworkManagerService::setWirelessEnabled(bool enabled, WirelessEnabledComp
               m_pendingLocalWirelessEnabled.reset();
             }
             kLog.warn("WirelessEnabled write failed: {}", err->what());
-            if (onComplete) {
-              onComplete(false);
-            }
+            complete(false);
             return;
           }
           m_emitOnNextRefresh = true;
           refresh();
-          if (onComplete) {
-            onComplete(true);
-          }
+          complete(true);
         });
   } catch (const sdbus::Error& e) {
     if (m_pendingLocalWirelessEnabled == enabled) {
       m_pendingLocalWirelessEnabled.reset();
     }
     kLog.warn("WirelessEnabled write dispatch failed: {}", e.what());
-    if (onComplete) {
-      onComplete(false);
-    }
+    complete(false);
   }
 }
 
@@ -1104,6 +1211,9 @@ namespace {
 } // namespace
 
 void NetworkManagerService::forgetSsid(const std::string& ssid) {
+  if (!available()) {
+    return;
+  }
   if (ssid.empty()) {
     return;
   }
@@ -1962,6 +2072,9 @@ void NetworkManagerService::finishRefreshAccessPoints(
 }
 
 void NetworkManagerService::requestRebind() {
+  if (!available()) {
+    return;
+  }
   if (m_rebindInFlight) {
     m_rebindQueued = true;
     return;
