@@ -272,14 +272,16 @@ void ControlCenterPanel::create() {
     }
   }
 
-  m_contentHeaderActions->addChild(
-      ui::button({
-          .out = &m_closeButton,
-          .glyph = "close",
-          .onClick = []() { PanelManager::instance().close(); },
-          .configure = [scale](Button& button) { panel_button_style::configureHeaderIconButton(button, scale); },
-      })
-  );
+  if (m_config == nullptr || m_config->config().shell.showCloseButtons) {
+    m_contentHeaderActions->addChild(
+        ui::button({
+            .out = &m_closeButton,
+            .glyph = "close",
+            .onClick = []() { PanelManager::instance().close(); },
+            .configure = [scale](Button& button) { panel_button_style::configureHeaderIconButton(button, scale); },
+        })
+    );
+  }
   header->addChild(std::move(headerActions));
 
   content->addChild(std::move(header));

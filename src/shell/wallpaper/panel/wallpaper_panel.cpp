@@ -605,19 +605,21 @@ void WallpaperPanel::create() {
       })
   );
 
-  toolbar->addChild(
-      ui::button({
-          .out = &m_closeButton,
-          .glyph = "close",
-          .glyphSize = Style::fontSizeBody * scale,
-          .tooltip = i18n::tr("wallpaper.panel.close"),
-          .minWidth = Style::controlHeightSm * scale,
-          .minHeight = Style::controlHeightSm * scale,
-          .padding = Style::spaceXs * scale,
-          .radius = Style::scaledRadiusMd(scale),
-          .onClick = []() { PanelManager::instance().close(); },
-      })
-  );
+  if (m_config == nullptr || m_config->config().shell.showCloseButtons) {
+    toolbar->addChild(
+        ui::button({
+            .out = &m_closeButton,
+            .glyph = "close",
+            .glyphSize = Style::fontSizeBody * scale,
+            .tooltip = i18n::tr("wallpaper.panel.close"),
+            .minWidth = Style::controlHeightSm * scale,
+            .minHeight = Style::controlHeightSm * scale,
+            .padding = Style::spaceXs * scale,
+            .radius = Style::scaledRadiusMd(scale),
+            .onClick = []() { PanelManager::instance().close(); },
+        })
+    );
+  }
 
   root->addChild(std::move(toolbar));
 

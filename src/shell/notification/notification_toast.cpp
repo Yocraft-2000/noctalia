@@ -325,6 +325,10 @@ namespace {
     return config == nullptr || config->config().notification.showActions;
   }
 
+  bool shouldShowCloseButton(const ConfigService* config) {
+    return config == nullptr || config->config().shell.showCloseButtons;
+  }
+
   std::unique_ptr<Button> makeNotificationActionButton(std::string_view label, float scale) {
     return ui::button({
         .text = std::string(label),
@@ -396,7 +400,9 @@ namespace {
     const bool showActions = shouldShowNotificationActions(config);
     const float iconSize = notificationIconSize(scale, showActions);
     const float textMaxWidth = notificationTextMaxWidth(scale, width, showActions);
-    const float topTextMaxWidth = std::max(0.0F, textMaxWidth - closeButtonSize(scale) - Style::spaceSm * scale);
+    const float topTextMaxWidth = shouldShowCloseButton(config)
+        ? std::max(0.0F, textMaxWidth - closeButtonSize(scale) - Style::spaceSm * scale)
+        : textMaxWidth;
     const bool showAppName = shouldShowNotificationAppName(config, appName);
 
     auto card = ui::column(
@@ -2410,7 +2416,9 @@ InputArea* NotificationToast::buildCard(
   const float cardW = cardWidth(scale, width);
   const float maxCardHeight = maxToastCardHeight(scale);
   const float textMaxWidth = notificationTextMaxWidth(scale, width, showActions);
-  const float topTextMaxWidth = std::max(0.0F, textMaxWidth - closeButtonSize(scale) - Style::spaceSm * scale);
+  const float topTextMaxWidth = shouldShowCloseButton(m_config)
+      ? std::max(0.0F, textMaxWidth - closeButtonSize(scale) - Style::spaceSm * scale)
+      : textMaxWidth;
   const bool showAppName = shouldShowNotificationAppName(m_config, entry.appName);
 
   auto viewport = ui::inputArea({});
@@ -2801,25 +2809,27 @@ InputArea* NotificationToast::buildCard(
   );
 
   cardRoot->addChild(std::move(foreground));
-  cardRoot->addChild(
-      ui::button({
-          .glyph = "close",
-          .glyphSize = kCloseGlyphSize * scale,
-          .variant = ButtonVariant::Ghost,
-          .minWidth = closeButtonSize(scale),
-          .minHeight = closeButtonSize(scale),
-          .padding = 0.0F,
-          .onClick = [this, id = entry.notificationId]() { requestClose(id, CloseReason::Dismissed); },
-          .onEnter = [this, notificationId = entry.notificationId]() { beginPopupHover(notificationId); },
-          .onLeave = [this, notificationId = entry.notificationId,
-                      totalDuration = entry.displayDurationMs]() { endPopupHover(notificationId, totalDuration); },
-          .configure =
-              [cardW, scale](Button& button) {
-                button.setCursorShape(WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER);
-                button.setPosition(cardW - cardInnerPad(scale) - closeButtonSize(scale), cardInnerPad(scale));
-              },
-      })
-  );
+  if (shouldShowCloseButton(m_config)) {
+    cardRoot->addChild(
+        ui::button({
+            .glyph = "close",
+            .glyphSize = kCloseGlyphSize * scale,
+            .variant = ButtonVariant::Ghost,
+            .minWidth = closeButtonSize(scale),
+            .minHeight = closeButtonSize(scale),
+            .padding = 0.0F,
+            .onClick = [this, id = entry.notificationId]() { requestClose(id, CloseReason::Dismissed); },
+            .onEnter = [this, notificationId = entry.notificationId]() { beginPopupHover(notificationId); },
+            .onLeave = [this, notificationId = entry.notificationId,
+                        totalDuration = entry.displayDurationMs]() { endPopupHover(notificationId, totalDuration); },
+            .configure =
+                [cardW, scale](Button& button) {
+                  button.setCursorShape(WP_CURSOR_SHAPE_DEVICE_V1_SHAPE_POINTER);
+                  button.setPosition(cardW - cardInnerPad(scale) - closeButtonSize(scale), cardInnerPad(scale));
+                },
+        })
+    );
+  }
   cardRoot->layout(renderer);
   viewport->addChild(std::move(cardRoot));
 

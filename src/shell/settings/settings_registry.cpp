@@ -1181,6 +1181,11 @@ namespace settings {
         "floating detached panel layer shell z-order input method popup fullscreen"
     ));
     entries.push_back(makeEntry(
+        SettingsSection::Panels, "general", tr("settings.schema.panels.show-close-buttons.label"),
+        tr("settings.schema.panels.show-close-buttons.description"), {"shell", "show_close_buttons"},
+        ToggleSetting{cfg.shell.showCloseButtons}, "close button cross dismiss hide panel notification settings window"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.transparency-mode.label"),
         tr("settings.schema.panels.transparency-mode.description"), {"shell", "panel", "transparency_mode"},
         asSegmented(enumSelect(kPanelTransparencyModes, cfg.shell.panel.transparencyMode)),

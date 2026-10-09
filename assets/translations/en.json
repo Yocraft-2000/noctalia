@@ -2745,6 +2745,10 @@
         "shadow": {
           "description": "Cast the global surface shadow from panel surfaces"
         },
+        "show-close-buttons": {
+          "description": "Show close buttons on shell panels, notification toasts, and the settings window",
+          "label": "Show Close Buttons"
+        },
         "transparency-mode": {
           "description": "Panel glass style, including floating panel opacity and card translucency",
           "label": "Transparency"
