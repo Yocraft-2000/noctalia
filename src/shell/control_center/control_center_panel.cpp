@@ -20,6 +20,7 @@
 #include "ui/controls/scroll_view.h"
 #include "ui/scroll_into_view.h"
 #include "ui/split_pane_focus.h"
+#include "ui/style.h"
 
 #include <algorithm>
 #include <chrono>
@@ -272,7 +273,7 @@ void ControlCenterPanel::create() {
     }
   }
 
-  if (m_config == nullptr || m_config->config().shell.showCloseButtons) {
+  if (Style::closeButtonsEnabled()) {
     m_contentHeaderActions->addChild(
         ui::button({
             .out = &m_closeButton,

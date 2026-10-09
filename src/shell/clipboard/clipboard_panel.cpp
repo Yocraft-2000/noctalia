@@ -714,7 +714,7 @@ void ClipboardPanel::create() {
         requestDeleteSelectedEntry();
       })
   );
-  if (m_config == nullptr || m_config->config().shell.showCloseButtons) {
+  if (Style::closeButtonsEnabled()) {
     previewActions->addChild(makeCompactIconButton(&m_closeButton, "close", ButtonVariant::Default, scale, []() {
       PanelManager::instance().close();
     }));

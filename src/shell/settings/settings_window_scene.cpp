@@ -1251,7 +1251,7 @@ std::unique_ptr<Flex> SettingsWindow::buildHeaderRow(float scale) {
           .configure = [](Button& button) { button.setTabStop(false); },
       })
   );
-  if (m_config == nullptr || m_config->config().shell.showCloseButtons) {
+  if (Style::closeButtonsEnabled()) {
     row->addChild(
         ui::button({
             .glyph = "close",

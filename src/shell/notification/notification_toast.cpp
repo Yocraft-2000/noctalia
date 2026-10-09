@@ -325,9 +325,7 @@ namespace {
     return config == nullptr || config->config().notification.showActions;
   }
 
-  bool shouldShowCloseButton(const ConfigService* config) {
-    return config == nullptr || config->config().shell.showCloseButtons;
-  }
+  bool shouldShowCloseButton() { return Style::closeButtonsEnabled(); }
 
   std::unique_ptr<Button> makeNotificationActionButton(std::string_view label, float scale) {
     return ui::button({
@@ -400,7 +398,7 @@ namespace {
     const bool showActions = shouldShowNotificationActions(config);
     const float iconSize = notificationIconSize(scale, showActions);
     const float textMaxWidth = notificationTextMaxWidth(scale, width, showActions);
-    const float topTextMaxWidth = shouldShowCloseButton(config)
+    const float topTextMaxWidth = shouldShowCloseButton()
         ? std::max(0.0F, textMaxWidth - closeButtonSize(scale) - Style::spaceSm * scale)
         : textMaxWidth;
     const bool showAppName = shouldShowNotificationAppName(config, appName);
@@ -2416,7 +2414,7 @@ InputArea* NotificationToast::buildCard(
   const float cardW = cardWidth(scale, width);
   const float maxCardHeight = maxToastCardHeight(scale);
   const float textMaxWidth = notificationTextMaxWidth(scale, width, showActions);
-  const float topTextMaxWidth = shouldShowCloseButton(m_config)
+  const float topTextMaxWidth = shouldShowCloseButton()
       ? std::max(0.0F, textMaxWidth - closeButtonSize(scale) - Style::spaceSm * scale)
       : textMaxWidth;
   const bool showAppName = shouldShowNotificationAppName(m_config, entry.appName);
@@ -2809,7 +2807,7 @@ InputArea* NotificationToast::buildCard(
   );
 
   cardRoot->addChild(std::move(foreground));
-  if (shouldShowCloseButton(m_config)) {
+  if (shouldShowCloseButton()) {
     cardRoot->addChild(
         ui::button({
             .glyph = "close",

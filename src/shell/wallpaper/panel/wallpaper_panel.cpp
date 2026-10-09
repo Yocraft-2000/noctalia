@@ -605,7 +605,7 @@ void WallpaperPanel::create() {
       })
   );
 
-  if (m_config == nullptr || m_config->config().shell.showCloseButtons) {
+  if (Style::closeButtonsEnabled()) {
     toolbar->addChild(
         ui::button({
             .out = &m_closeButton,
