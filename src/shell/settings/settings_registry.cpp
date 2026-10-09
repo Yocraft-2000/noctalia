@@ -608,6 +608,12 @@ namespace settings {
       entries.push_back(std::move(e));
     }
     entries.push_back(makeEntry(
+        SettingsSection::Appearance, "interface", tr("settings.schema.appearance.show-close-buttons.label"),
+        tr("settings.schema.appearance.show-close-buttons.description"), {"shell", "show_close_buttons"},
+        ToggleSetting{cfg.shell.showCloseButtons},
+        "close button cross dismiss hide panel notification toast popup dialog sheet settings window"
+    ));
+    entries.push_back(makeEntry(
         SettingsSection::Appearance, "accessibility", tr("settings.schema.appearance.ui-scale.label"),
         tr("settings.schema.appearance.ui-scale.description"), {"accessibility", "ui_scale"},
         sliderFor(cfg.accessibility.uiScale, noctalia::config::schema::kScaleRange, false), "size scale text panels"
@@ -1179,12 +1185,6 @@ namespace settings {
             cfg.shell.panel.floatingLayer
         )),
         "floating detached panel layer shell z-order input method popup fullscreen"
-    ));
-    entries.push_back(makeEntry(
-        SettingsSection::Panels, "general", tr("settings.schema.panels.show-close-buttons.label"),
-        tr("settings.schema.panels.show-close-buttons.description"), {"shell", "show_close_buttons"},
-        ToggleSetting{cfg.shell.showCloseButtons},
-        "close button cross dismiss hide panel notification toast popup dialog sheet settings window"
     ));
     entries.push_back(makeEntry(
         SettingsSection::Panels, "effects", tr("settings.schema.panels.transparency-mode.label"),
