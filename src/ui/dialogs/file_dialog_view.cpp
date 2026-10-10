@@ -151,8 +151,8 @@ void FileDialogView::create() {
           .fontWeight = FontWeight::Bold,
           .color = colorSpecFromRole(ColorRole::Primary),
       })
-  ),
-      headerRow->addChild(ui::spacer());
+  );
+  headerRow->addChild(ui::spacer());
   if (Style::closeButtonsEnabled()) {
     headerRow->addChild(
         ui::button({

@@ -1836,7 +1836,7 @@
           "label": "Shell Theme Mode"
         },
         "show-close-buttons": {
-          "description": "Show close buttons on shell surfaces: panels, notification toasts, popups, dialogs, and the settings window",
+          "description": "Show close buttons on panels, notification toasts, popups, dialogs, and the settings window",
           "label": "Show Close Buttons"
         },
         "theme-mode": {
