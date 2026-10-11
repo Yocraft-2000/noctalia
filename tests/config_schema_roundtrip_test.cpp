@@ -554,6 +554,7 @@ location = "https://example.invalid/bad"
     c.shell.screenshot.pipeToCommand = true;
     c.shell.screenshot.skipAnnotateOnCopySave = true;
     c.shell.screenshot.closeOnSave = false; // non-default (default is true) so the round-trip exercises it
+    c.shell.screenshot.regionModifier = "super";
     c.shell.session.actions = {
         SessionPanelActionConfig{
             "lock",

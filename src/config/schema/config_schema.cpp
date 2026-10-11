@@ -1504,6 +1504,30 @@ namespace noctalia::config::schema {
           field(&ShellConfig::ScreenshotConfig::freezeScreen, "freeze_screen"),
           field(&ShellConfig::ScreenshotConfig::confirmRegion, "confirm_region"),
           field(&ShellConfig::ScreenshotConfig::rememberLastRegion, "remember_last_region"),
+          custom<ShellConfig::ScreenshotConfig>(
+              "region_modifier",
+              [](const toml::table& tbl, ShellConfig::ScreenshotConfig& out, std::string_view parentPath,
+                 Diagnostics& diag) {
+                if (auto v = tbl["region_modifier"].value<std::string>()) {
+                  const std::string trimmed = StringUtils::trim(*v);
+                  if (trimmed.empty()
+                      || trimmed == "super"
+                      || trimmed == "ctrl"
+                      || trimmed == "alt"
+                      || trimmed == "shift") {
+                    out.regionModifier = trimmed;
+                  } else {
+                    diag.warn(
+                        joinPath(parentPath, "region_modifier"),
+                        "expected super, ctrl, alt, or shift, got \"" + trimmed + "\""
+                    );
+                  }
+                }
+              },
+              [](toml::table& tbl, const ShellConfig::ScreenshotConfig& in) {
+                tbl.insert_or_assign("region_modifier", in.regionModifier);
+              }
+          ),
           field(&ShellConfig::ScreenshotConfig::showCursor, "show_cursor"),
           field(&ShellConfig::ScreenshotConfig::annotate, "annotate"),
           field(&ShellConfig::ScreenshotConfig::skipAnnotateOnCopySave, "skip_annotate_on_copy_save"),

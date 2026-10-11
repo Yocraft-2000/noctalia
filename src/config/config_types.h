@@ -1166,6 +1166,8 @@ struct ShellConfig {
     std::string pipeCommand;
     std::string directory;       // empty = XDG Pictures directory
     std::string filenamePattern; // empty = screenshot_%Y%m%d_%H%M%S
+    // Modifier to hold to move/resize a selection; empty = none needed (super/ctrl/alt/shift).
+    std::string regionModifier;
 
     bool operator==(const ScreenshotConfig&) const = default;
   };
