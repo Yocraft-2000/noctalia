@@ -3372,7 +3372,7 @@
           "label": "Remember Last Region"
         },
         "screenshot-region-modifier": {
-          "description": "Modifier to move or resize a selected region: drag left to move, drag right to resize from the outer thirds (corners resize both axes). Off (default) keeps the plain drag-to-adjust behavior",
+          "description": "Modifier to move or resize a selected region: left-drag to move, right-drag to resize from the outer thirds (corners resize both axes). None (default) keeps the plain drag-to-adjust behavior",
           "label": "Move/Resize Modifier"
         },
         "screenshot-save-to-file": {
