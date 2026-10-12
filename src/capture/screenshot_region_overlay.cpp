@@ -47,10 +47,9 @@ namespace capture {
     constexpr float kDimensionPaddingY = 4.0F;
     constexpr float kSelectionBorderWidth = 2.0F;
     constexpr float kDimOpacity = 0.65F;
+    constexpr double kHandleMargin = 15.0; // Hitbox size in pixels
 
     [[nodiscard]] capture::DragMode hitTestSelection(double x, double y, double x0, double y0, double x1, double y1) {
-      constexpr double kHandleMargin = 15.0; // Hitbox size in pixels
-
       const bool withinX = x >= x0 - kHandleMargin && x <= x1 + kHandleMargin;
       const bool withinY = y >= y0 - kHandleMargin && y <= y1 + kHandleMargin;
 
@@ -108,7 +107,6 @@ namespace capture {
     // Right-button resize zones: outer thirds of each axis pick the matching edge or corner.
     [[nodiscard]] capture::DragMode
     hitTestRegionThirds(double x, double y, double x0, double y0, double x1, double y1) {
-      constexpr double kHandleMargin = 15.0;
       if (x < x0 - kHandleMargin || x > x1 + kHandleMargin || y < y0 - kHandleMargin || y > y1 + kHandleMargin) {
         return capture::DragMode::None;
       }
