@@ -576,13 +576,17 @@ namespace capture {
           return;
 
         if (!data.pressed) {
-          if (!m_dragging)
+          if (!m_dragging || data.button != m_dragButton)
             return;
           m_dragging = false;
+          m_dragButton = 0;
           // completeSelection() tears down surfaces; defer past InputDispatcher::pointerButton.
           DeferredCall::callLater([this]() { completeSelection(); });
           return;
         }
+
+        if (m_dragging)
+          return;
 
         const auto* out = findOutput(*m_wayland, output);
         if (out == nullptr)
@@ -592,6 +596,7 @@ namespace capture {
         const double globalY = static_cast<double>(out->logicalY) + static_cast<double>(data.localY);
 
         m_dragging = true;
+        m_dragButton = data.button;
 
         if (m_confirming && (m_regionModifierMask == 0 || modifierHeld())) {
           const double x0 = std::min(m_startGlobalX, m_currentGlobalX);
@@ -614,12 +619,17 @@ namespace capture {
             m_dragMode = hitTestRegionThirds(globalX, globalY, x0, y0, x1, y1);
             if (m_dragMode == DragMode::None) {
               m_dragging = false;
+              m_dragButton = 0;
               return;
             }
           }
-        } else {
+        } else if (data.button == BTN_LEFT) {
           m_confirming = false;
           m_dragMode = DragMode::NewSelection;
+        } else {
+          m_dragging = false;
+          m_dragButton = 0;
+          return;
         }
 
         if (m_dragMode == DragMode::NewSelection) {

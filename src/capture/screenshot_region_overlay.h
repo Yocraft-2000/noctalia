@@ -105,6 +105,7 @@ namespace capture {
     bool m_confirmRegion = false;
     bool m_confirming = false;
     bool m_dragging = false;
+    std::uint32_t m_dragButton = 0;
     double m_startGlobalX = 0.0;
     double m_startGlobalY = 0.0;
     double m_currentGlobalX = 0.0;
