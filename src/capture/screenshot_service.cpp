@@ -63,16 +63,20 @@ namespace {
     return value;
   }
 
-  [[nodiscard]] std::uint32_t regionModifierMask(const std::string& name) {
-    if (name == "super")
+  [[nodiscard]] std::uint32_t regionModifierMask(ScreenshotRegionModifier modifier) {
+    switch (modifier) {
+    case ScreenshotRegionModifier::Super:
       return KeyMod::Super;
-    if (name == "ctrl")
+    case ScreenshotRegionModifier::Ctrl:
       return KeyMod::Ctrl;
-    if (name == "alt")
+    case ScreenshotRegionModifier::Alt:
       return KeyMod::Alt;
-    if (name == "shift")
+    case ScreenshotRegionModifier::Shift:
       return KeyMod::Shift;
-    return 0;
+    case ScreenshotRegionModifier::None:
+      return 0;
+      return 0;
+    }
   }
 
   [[nodiscard]] std::optional<capture::AnnotationColor> parseAnnotationColor(std::string_view text) {
