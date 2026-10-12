@@ -75,8 +75,8 @@ namespace {
       return KeyMod::Shift;
     case ScreenshotRegionModifier::None:
       return 0;
-      return 0;
     }
+    return 0;
   }
 
   [[nodiscard]] std::optional<capture::AnnotationColor> parseAnnotationColor(std::string_view text) {
