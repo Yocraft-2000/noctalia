@@ -546,6 +546,7 @@ void Application::initStyleThemeAndWayland() {
     Style::setPopupBordersEnabled(m_configService.config().shell.popupBorders);
     Style::setPopupShadowsEnabled(m_configService.config().shell.popupShadows);
     Style::setCardBordersEnabled(m_configService.config().shell.cardBorders);
+    Style::setCloseButtonsEnabled(m_configService.config().shell.showCloseButtons);
     lastCornerRadiusScale = corner;
     if (cornerChanged) {
       m_notificationToast.requestLayout();
@@ -751,7 +752,7 @@ void Application::initStyleThemeAndWayland() {
     throw std::runtime_error("failed to connect to Wayland display");
   }
   m_compositorPlatform.initialize();
-  m_screenTimeService.initialize(&m_wayland);
+  m_screenTimeService.initialize(&m_compositorPlatform);
   syncScreenTimeService();
   m_screenTimeService.setChangeCallback([this]() {
     if (m_panelManager.isOpenPanel("control-center") && m_panelManager.isActivePanelContext("screen-time")) {
@@ -1061,6 +1062,10 @@ void Application::initSystemBusServices() {
           // fade-complete cleanup races with process freeze.
           m_idleGraceOverlay.hide();
           if (sleeping) {
+            // Sleep-related locks must never offer passwordless unlock: revoke
+            // before handling the transition so locks already pending or engaged
+            // lose the window, and idempotently again after the lock armed below.
+            m_lockScreen.resetGracePeriod();
             // Screen time must not accumulate across suspend even when lock-before-suspend is off.
             m_screenTimeService.setSuspendPaused(true);
             // Delay inhibit (when lock_before_suspend is on) holds sleep until we lock.
@@ -1100,6 +1105,8 @@ void Application::initSystemBusServices() {
               return;
             }
             // Deferred lock (no outputs yet) never reaches SessionLocked; do not block sleep.
+            // lock() re-armed grace above; a sleep-bound lock must never offer it.
+            m_lockScreen.resetGracePeriod();
             if (!m_lockScreen.isActive()) {
               m_releaseSleepDelayWhenLocked = false;
               if (m_logindService != nullptr) {
@@ -1125,6 +1132,7 @@ void Application::initSystemBusServices() {
           // callback and force an immediate repaint of the lock surfaces.
           if (m_lockScreen.isActive()) {
             m_lockScreen.forceRepaintAfterResume();
+            m_lockScreen.onSystemResumed();
           }
           m_weatherService.requestRefresh();
           m_gammaService.reevaluateSchedule();

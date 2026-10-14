@@ -98,7 +98,8 @@ private:
       const std::optional<network_enterprise::EnterpriseCredentials>& credentials = std::nullopt
   );
   void watchPendingAccessPointActivation(
-      const std::string& ssid, const std::string& connectionPath, const std::string& activePath
+      const std::string& ssid, const std::string& devicePath, const std::string& connectionPath,
+      const std::string& activePath
   );
   void handlePendingAccessPointActivationState(const std::string& activePath, std::uint32_t state);
   void persistConnectionToDisk(const std::string& connectionPath, const std::string& ssid);
