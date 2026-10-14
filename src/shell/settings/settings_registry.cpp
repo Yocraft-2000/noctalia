@@ -2378,14 +2378,16 @@ namespace settings {
     ));
 
     // Niri-specific integrations
-    if (env.niriOverviewSupported || env.niriBackdropSupported) {
-      if (env.niriOverviewSupported) {
+    if (env.niriOverviewTypeToLaunchSupported || env.niriBackdropSupported) {
+      if (env.niriOverviewTypeToLaunchSupported) {
         entries.push_back(makeEntry(
             SettingsSection::Niri, "overview", tr("settings.schema.shell.niri-overview-type-to-launch.label"),
             tr("settings.schema.shell.niri-overview-type-to-launch.description"),
             {"shell", "niri_overview_type_to_launch_enabled"}, ToggleSetting{cfg.shell.niriOverviewTypeToLaunchEnabled},
             "niri overview type launch launcher search keyboard focus"
         ));
+      }
+      if (env.niriOverviewCloseOnLaunchSupported) {
         entries.push_back(makeEntry(
             SettingsSection::Niri, "overview", tr("settings.schema.shell.niri-overview-close-on-launch.label"),
             tr("settings.schema.shell.niri-overview-close-on-launch.description"),
@@ -2413,7 +2415,7 @@ namespace settings {
     }
 
     // Umbriel-specific integrations
-    if (env.umbrielOverviewSupported) {
+    if (env.umbrielOverviewTypeToLaunchSupported) {
       entries.push_back(makeEntry(
           SettingsSection::Umbriel, "overview", tr("settings.schema.shell.umbriel-overview-type-to-launch.label"),
           tr("settings.schema.shell.umbriel-overview-type-to-launch.description"),
@@ -2421,6 +2423,8 @@ namespace settings {
           ToggleSetting{cfg.shell.umbrielOverviewTypeToLaunchEnabled},
           "umbriel overview type launch launcher search keyboard focus"
       ));
+    }
+    if (env.umbrielOverviewCloseOnLaunchSupported) {
       entries.push_back(makeEntry(
           SettingsSection::Umbriel, "overview", tr("settings.schema.shell.umbriel-overview-close-on-launch.label"),
           tr("settings.schema.shell.umbriel-overview-close-on-launch.description"),
