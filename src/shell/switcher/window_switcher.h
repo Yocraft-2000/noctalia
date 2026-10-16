@@ -22,6 +22,15 @@ class WaylandConnection;
 struct wl_callback;
 struct wl_output;
 
+// Session-scoped override of the [shell.window_switcher] window filters, set per invocation by the IPC command.
+enum class WindowSwitcherScope : std::uint8_t {
+  None,
+  All,
+  Output,
+  Workspace,
+  Current,
+};
+
 // Fullscreen keyboard-driven switcher with selectable preview presentations.
 class WindowSwitcher {
 public:
@@ -98,6 +107,7 @@ private:
   wl_callback* m_shortcutReleaseSync = nullptr;
   WindowSwitcherShortcutState m_shortcutState;
   std::uint64_t m_shortcutSessionGeneration = 0;
+  WindowSwitcherScope m_scopeOverride = WindowSwitcherScope::None;
   bool m_active = false;
   bool m_shortcutSession = false;
 };
