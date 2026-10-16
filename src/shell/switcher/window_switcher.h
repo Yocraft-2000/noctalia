@@ -64,6 +64,7 @@ private:
   void closeWindowAt(std::size_t index);
   void requestSceneUpdate();
   void startThumbnailCaptures();
+  void enqueueMissingThumbnailCaptures();
   void captureNextThumbnail();
   void cancelThumbnailCaptures();
   [[nodiscard]] bool matchesTrigger(const KeyboardEvent& event) const noexcept;
@@ -101,6 +102,7 @@ private:
   };
   std::unique_ptr<ToplevelThumbnailCapture> m_thumbnailCapture;
   std::deque<ThumbnailRequest> m_thumbnailQueue;
+  std::string m_inFlightThumbnailKey;
   std::deque<std::string> m_mruKeys;
   std::size_t m_selectedIndex = 0;
   wl_output* m_output = nullptr;

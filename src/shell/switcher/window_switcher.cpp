@@ -751,6 +751,7 @@ void WindowSwitcher::onToplevelChange() {
   } else if (m_instance != nullptr) {
     m_instance->contentSyncPending = true;
   }
+  enqueueMissingThumbnailCaptures();
   requestSceneUpdate();
 }
 
@@ -806,6 +807,8 @@ void WindowSwitcher::showWithDirection(wl_output* output, int direction) {
   requestSceneUpdate();
   if (!wasActive || outputChanged) {
     startThumbnailCaptures();
+  } else {
+    enqueueMissingThumbnailCaptures();
   }
 }
 
@@ -904,6 +907,10 @@ void WindowSwitcher::refreshWindows() {
 
 void WindowSwitcher::startThumbnailCaptures() {
   cancelThumbnailCaptures();
+  enqueueMissingThumbnailCaptures();
+}
+
+void WindowSwitcher::enqueueMissingThumbnailCaptures() {
   if (!m_active || m_wayland == nullptr || m_thumbnailCapture == nullptr || !m_thumbnailCapture->available()) {
     return;
   }
@@ -916,9 +923,16 @@ void WindowSwitcher::startThumbnailCaptures() {
     queued[index] = true;
     const WindowSwitcherEntry& entry = m_windows[index];
     const std::string key = identityKeyForEntry(entry);
-    if (!key.empty() && entry.captureHandle != 0 && entry.thumbnail == nullptr) {
-      m_thumbnailQueue.push_back(ThumbnailRequest{.windowKey = key, .captureHandle = entry.captureHandle});
+    if (key.empty() || entry.captureHandle == 0 || entry.thumbnail != nullptr || key == m_inFlightThumbnailKey) {
+      return;
     }
+    const bool alreadyQueued = std::ranges::any_of(m_thumbnailQueue, [&key](const ThumbnailRequest& request) {
+      return request.windowKey == key;
+    });
+    if (alreadyQueued) {
+      return;
+    }
+    m_thumbnailQueue.push_back(ThumbnailRequest{.windowKey = key, .captureHandle = entry.captureHandle});
   };
   if (m_selectedIndex < m_windows.size()) {
     enqueue(m_selectedIndex);
@@ -950,6 +964,7 @@ void WindowSwitcher::captureNextThumbnail() {
       continue;
     }
 
+    m_inFlightThumbnailKey = request.windowKey;
     m_thumbnailCapture->capture(
         handle, 640, 400,
         [this, windowKey = std::move(request.windowKey)](std::optional<ScreencopyImage> image, std::string error) {
@@ -967,6 +982,7 @@ void WindowSwitcher::captureNextThumbnail() {
             }
             requestSceneUpdate();
           }
+          m_inFlightThumbnailKey.clear();
           captureNextThumbnail();
         }
     );
@@ -976,6 +992,7 @@ void WindowSwitcher::captureNextThumbnail() {
 
 void WindowSwitcher::cancelThumbnailCaptures() {
   m_thumbnailQueue.clear();
+  m_inFlightThumbnailKey.clear();
   if (m_thumbnailCapture != nullptr) {
     m_thumbnailCapture->cancelInFlight();
   }
