@@ -45,8 +45,6 @@ namespace capture {
     constexpr float kDimensionCursorOffsetY = 14.0F;
     constexpr float kDimensionPaddingX = 6.0F;
     constexpr float kDimensionPaddingY = 4.0F;
-    constexpr float kSelectionBorderWidth = 2.0F;
-    constexpr float kDimOpacity = 0.65F;
     constexpr double kHandleMargin = 15.0; // Hitbox size in pixels
 
     [[nodiscard]] capture::DragMode hitTestSelection(double x, double y, double x0, double y0, double x1, double y1) {
@@ -300,6 +298,12 @@ namespace capture {
   }
 
   void ScreenshotRegionOverlay::setRegionModifier(std::uint32_t mask) { m_regionModifierMask = mask; }
+
+  void ScreenshotRegionOverlay::setSelectionBorderWidth(float width) { m_selectionBorderWidth = width; }
+
+  void ScreenshotRegionOverlay::setDimOpacity(float opacity) { m_dimOpacity = opacity; }
+
+  void ScreenshotRegionOverlay::setShowRegionHint(bool show) { m_showRegionHint = show; }
 
   void ScreenshotRegionOverlay::applyCursorShape(std::uint32_t shape) {
     for (auto& instance : m_instances) {
@@ -814,7 +818,7 @@ namespace capture {
           .fill = fixedColorSpec(rgba(0.0F, 0.0F, 0.0F, 1.0F)),
           .width = 0.0F,
           .height = 0.0F,
-          .opacity = kDimOpacity,
+          .opacity = m_dimOpacity,
           .configure = [](Box& box) { box.setPosition(0.0F, 0.0F); },
       });
       return static_cast<Box*>(input->addChild(std::move(strip)));
@@ -829,7 +833,9 @@ namespace capture {
 
     auto selection = ui::box({
         .visible = false,
-        .configure = [border](Box& box) { box.setBorder(fixedColorSpec(border), kSelectionBorderWidth); },
+        .configure = [border, width = m_selectionBorderWidth](Box& box) {
+          box.setBorder(fixedColorSpec(border), width);
+        },
     });
 
     Color badgeFill = colorForRole(ColorRole::Surface);
@@ -1121,9 +1127,9 @@ namespace capture {
       // The outline is inset, so expand it outward to keep the border out of the
       // captured (undimmed) region.
       inst->selection->setVisible(true);
-      inst->selection->setPosition(holeX0 - kSelectionBorderWidth, holeY0 - kSelectionBorderWidth);
+      inst->selection->setPosition(holeX0 - m_selectionBorderWidth, holeY0 - m_selectionBorderWidth);
       inst->selection->setSize(
-          (holeX1 - holeX0) + (kSelectionBorderWidth * 2.0F), (holeY1 - holeY0) + (kSelectionBorderWidth * 2.0F)
+          (holeX1 - holeX0) + (m_selectionBorderWidth * 2.0F), (holeY1 - holeY0) + (m_selectionBorderWidth * 2.0F)
       );
 
       if (inst->dimensionsBadge != nullptr && inst->dimensionsLabel != nullptr && m_renderContext != nullptr) {
@@ -1171,8 +1177,9 @@ namespace capture {
         if (inst->confirmHint == nullptr || inst->surface == nullptr) {
           continue;
         }
-        inst->confirmHint->setVisible(m_confirming);
-        if (!m_confirming) {
+        const bool showHint = m_confirming && m_showRegionHint;
+        inst->confirmHint->setVisible(showHint);
+        if (!showHint) {
           continue;
         }
         if (inst->confirmHintLabel != nullptr) {
