@@ -608,6 +608,9 @@ void NotificationToast::onConfigReload() {
   }
   revealQueuedEntries();
   enforceMaxVisible();
+  if (isNewestOnEdge()) {
+    collapseStack();
+  }
   requestLayout();
 }
 
@@ -621,6 +624,9 @@ void NotificationToast::onOutputChange() {
   }
   revealQueuedEntries();
   enforceMaxVisible();
+  if (isNewestOnEdge()) {
+    collapseStack();
+  }
   requestLayout();
 }
 
@@ -870,6 +876,9 @@ void NotificationToast::onNotificationEvent(const Notification& n, NotificationE
           syncEntryVisibility(i);
           revealQueuedEntries();
         }
+        if (isNewestOnEdge()) {
+          collapseStack();
+        }
         break;
       }
     }
@@ -949,6 +958,9 @@ void NotificationToast::addPopup(const Notification& n) {
   syncEntryVisibility(index);
   revealQueuedEntries();
   enforceMaxVisible();
+  if (isNewestOnEdge()) {
+    collapseStack();
+  }
 
   kLog.debug("notification toast: showing #{}", n.id);
 }
@@ -1032,10 +1044,13 @@ void NotificationToast::finishRemoval(uint32_t notificationId) {
     destroySurfaces();
   } else {
     ensureSurfaces();
-    if (m_config != nullptr && m_config->config().notification.collapseOnDismiss) {
+    if (m_config != nullptr && m_config->config().notification.collapseOnDismiss && !isNewestOnEdge()) {
       collapseStack();
     }
     revealQueuedEntries();
+    if (isNewestOnEdge()) {
+      collapseStack();
+    }
     // A placed entry can overflow a shorter monitor and stay absent there while it fits a
     // taller one. Now that this dismissal freed room (and any collapse repacked the stack),
     // re-check per-instance visibility so it appears on monitors where it now fits.
@@ -1382,10 +1397,13 @@ void NotificationToast::resetPopupHover(uint32_t notificationId, int totalDurati
   if (resumeTimer) {
     resumeTimeout(notificationId, totalDuration);
   }
-  if (m_config != nullptr && m_config->config().notification.collapseOnDismiss) {
+  if (m_config != nullptr && m_config->config().notification.collapseOnDismiss && !isNewestOnEdge()) {
     collapseStack();
   }
   revealQueuedEntries();
+  if (isNewestOnEdge()) {
+    collapseStack();
+  }
 }
 
 void NotificationToast::resetInstanceHover(Instance& inst, bool resumeTimers) {
@@ -1700,6 +1718,10 @@ bool NotificationToast::entriesShareStack(const PopupEntry& lhs, const PopupEntr
 
 bool NotificationToast::isBottomStacking() const { return isBottomPosition(notificationPosition()); }
 
+bool NotificationToast::isNewestOnEdge() const {
+  return m_config != nullptr && m_config->config().notification.newestOnEdge;
+}
+
 NotificationToast::RevealDirection NotificationToast::revealDirection() const {
   return revealDirectionForPosition(notificationPosition());
 }
@@ -1903,7 +1925,11 @@ void NotificationToast::collapseStack() {
       return;
     }
 
-    std::ranges::sort(placed, {}, &PlacedEntry::oldPrimary);
+    if (isNewestOnEdge()) {
+      std::ranges::sort(placed, std::ranges::greater{}, &PlacedEntry::index);
+    } else {
+      std::ranges::sort(placed, {}, &PlacedEntry::oldPrimary);
+    }
 
     float cursor = isBottomStacking() ? 0.0F : topPad;
     for (auto& p : placed) {

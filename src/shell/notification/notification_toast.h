@@ -179,6 +179,7 @@ private:
   [[nodiscard]] bool entryTargetsOutput(const PopupEntry& entry, wl_output* output) const;
   [[nodiscard]] bool entriesShareStack(const PopupEntry& lhs, const PopupEntry& rhs) const;
   [[nodiscard]] bool isBottomStacking() const;
+  [[nodiscard]] bool isNewestOnEdge() const;
   [[nodiscard]] RevealDirection revealDirection() const;
   void refreshEntryGeometry(PopupEntry& entry) const;
   [[nodiscard]] float layoutBottomForSurfaceHeight(float surfaceHeight) const;
