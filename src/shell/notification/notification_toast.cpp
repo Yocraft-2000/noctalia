@@ -2030,7 +2030,7 @@ void NotificationToast::reflowNewestOnEdge() {
     return;
   }
   collapseStack();
-  for (std::size_t i = 0; i < m_entries.size(); i++) {
+  for (std::size_t i = 0; i < m_entries.size(); ++i) {
     syncEntryVisibility(i);
   }
 }
