@@ -959,6 +959,7 @@ void ScreenshotService::ensureRegionOverlay() {
   m_regionOverlay->setSelectionBorderWidth(screenshotCfg.regionBorderWidth);
   m_regionOverlay->setDimOpacity(screenshotCfg.regionDimOpacity);
   m_regionOverlay->setShowRegionHint(screenshotCfg.showRegionHint);
+  m_regionOverlay->setShowRegionDimensions(screenshotCfg.showRegionDimensions);
   m_regionOverlay->setFailureCallback([this](const std::string& message) {
     m_frozenScreenshots.clear();
     m_regionFullscreenPick = false;

@@ -47,6 +47,7 @@ namespace capture {
     void setSelectionBorderWidth(float width);
     void setDimOpacity(float opacity);
     void setShowRegionHint(bool show);
+    void setShowRegionDimensions(bool show);
     [[nodiscard]] std::vector<FrozenScreenshot> takeFrozenScreenshots();
     void begin(
         bool freezeScreen, bool fullscreenPick = false, bool confirmRegion = false,
@@ -105,6 +106,7 @@ namespace capture {
     float m_selectionBorderWidth = 2.0F;
     float m_dimOpacity = 0.65F;
     bool m_showRegionHint = true;
+    bool m_showRegionDimensions = true;
     bool m_active = false;
     bool m_freezeScreen = false;
     bool m_fullscreenPick = false;

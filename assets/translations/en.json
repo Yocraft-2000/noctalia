@@ -3493,6 +3493,10 @@
           "description": "Show the confirm hint with keybinds (Copy, Save, Cancel) while confirming a region.",
           "label": "Show Region Hint"
         },
+        "screenshot-show-region-dimensions": {
+          "description": "Show the dimensions tooltip badge while resizing/moving a region",
+          "label": "Show Region Dimensions"
+        },
         "screenshot-save-to-file": {
           "description": "Write screenshots as PNG files to the output directory",
           "label": "Save to File"

@@ -305,6 +305,8 @@ namespace capture {
 
   void ScreenshotRegionOverlay::setShowRegionHint(bool show) { m_showRegionHint = show; }
 
+  void ScreenshotRegionOverlay::setShowRegionDimensions(bool show) { m_showRegionDimensions = show; }
+
   void ScreenshotRegionOverlay::applyCursorShape(std::uint32_t shape) {
     for (auto& instance : m_instances) {
       if (instance->input != nullptr) {
@@ -1138,7 +1140,7 @@ namespace capture {
         const double targetY = m_cursorGlobalY;
         const bool badgeOnOutput = targetX >= outLeft && targetX < outRight && targetY >= outTop && targetY < outBottom;
 
-        if (showBadge && badgeOnOutput) {
+        if (showBadge && badgeOnOutput && m_showRegionDimensions) {
           inst->dimensionsLabel->setText(dimensionText);
           inst->dimensionsLabel->measure(inst->surface->renderTarget().renderer());
 

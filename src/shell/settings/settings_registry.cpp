@@ -2133,6 +2133,13 @@ namespace settings {
         {"shell", "screenshot", "show_region_hint"}, ToggleSetting{cfg.shell.screenshot.showRegionHint},
         "screenshot region confirm hint keybind copy save cancel"
     ));
+    entries.push_back(makeEntry(
+        SettingsSection::Screenshot, "screenshot-capture",
+        tr("settings.schema.shell.screenshot-show-region-dimensions.label"),
+        tr("settings.schema.shell.screenshot-show-region-dimensions.description"),
+        {"shell", "screenshot", "show_region_dimensions"}, ToggleSetting{cfg.shell.screenshot.showRegionDimensions},
+        "screenshot region dimensions size tooltip badge"
+    ));
 
     entries.push_back(makeEntry(
         SettingsSection::Screenshot, "screenshot-annotation", tr("settings.schema.shell.screenshot-annotate.label"),
