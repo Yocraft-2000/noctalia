@@ -1391,6 +1391,9 @@ void NotificationToast::resetPopupHover(uint32_t notificationId, int totalDurati
     collapseStack();
   }
   revealQueuedEntries();
+  for (std::size_t i = 0; i < m_entries.size(); ++i) {
+    syncEntryVisibility(i);
+  }
 }
 
 void NotificationToast::resetInstanceHover(Instance& inst, bool resumeTimers) {
@@ -1919,14 +1922,48 @@ void NotificationToast::collapseStack() {
     }
 
     float cursor = isBottomStacking() ? 0.0F : topPad;
-    for (auto& p : placed) {
-      if (p.hovered) {
-        cursor = std::max(cursor, p.oldPrimary + m_entries[p.index].height + layoutGap);
-        continue;
+    if (isNewestOnEdge()) {
+      struct ReservedSlot {
+        float start;
+        float end;
+      };
+      std::vector<ReservedSlot> reserved;
+      for (const auto& p : placed) {
+        if (p.hovered) {
+          reserved.push_back({p.oldPrimary, p.oldPrimary + m_entries[p.index].height});
+        }
       }
+      for (auto& p : placed) {
+        const float height = m_entries[p.index].height;
+        if (p.hovered) {
+          p.newPrimary = p.oldPrimary;
+          continue;
+        }
 
-      p.newPrimary = cursor;
-      cursor = cursor + m_entries[p.index].height + layoutGap;
+        bool shifted = true;
+        while (shifted) {
+          shifted = false;
+          for (const auto& slot : reserved) {
+            if (cursor < slot.end + layoutGap && cursor + height + layoutGap > slot.start) {
+              cursor = slot.end + layoutGap;
+              shifted = true;
+            }
+          }
+        }
+
+        p.newPrimary = cursor;
+        cursor = cursor + height + layoutGap;
+      }
+    } else {
+      for (auto& p : placed) {
+        if (p.hovered) {
+          cursor = std::max(cursor, p.oldPrimary + m_entries[p.index].height + layoutGap);
+          continue;
+        }
+
+        p.newPrimary = cursor;
+        cursor = cursor + m_entries[p.index].height + layoutGap;
+      }
     }
 
     for (auto& p : placed) {
