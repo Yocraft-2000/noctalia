@@ -167,6 +167,7 @@ private:
   void revealQueuedEntries();
   void enforceMaxVisible();
   void collapseStack();
+  void reflowNewestOnEdge();
   void evictOverlappingEntries(std::size_t anchorIndex);
   [[nodiscard]] bool hasPlacement(const PopupEntry& entry) const;
   [[nodiscard]] bool
