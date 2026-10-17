@@ -38,7 +38,7 @@ namespace noctalia::config::schema {
   inline constexpr Range<float> kBarFontScaleRange{0.2F, 2.5F, 0.01F};
   inline constexpr Range<float> kBarCapsuleBorderWidthRange{0.0F, 8.0F, 0.5F};
 
-  // Screenshot
+  // Screenshot.
   inline constexpr Range<float> kScreenshotRegionBorderWidthRange{0.0F, 20.0F, 0.5F};
 
   // Battery / wallpaper.
