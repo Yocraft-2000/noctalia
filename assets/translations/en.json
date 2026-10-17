@@ -3482,15 +3482,15 @@
           "label": "Remember Last Region"
         },
         "screenshot-region-border-width": {
-          "description": "Width of the border around the selected region.",
+          "description": "Width of the border around the selected region",
           "label": "Region Border Width"
         },
         "screenshot-region-dim-opacity": {
-          "description": "Opacity of the darkened area around the selected region.",
+          "description": "Opacity of the darkened area around the selected region",
           "label": "Region Dim Opacity"
         },
         "screenshot-show-region-hint": {
-          "description": "Show the confirm hint with keybinds (Copy, Save, Cancel) while confirming a region.",
+          "description": "Show the confirm hint with keybinds (Copy, Save, Cancel) while confirming a region",
           "label": "Show Region Hint"
         },
         "screenshot-show-region-dimensions": {
