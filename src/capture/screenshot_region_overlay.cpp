@@ -47,9 +47,10 @@ namespace capture {
     constexpr float kDimensionPaddingY = 4.0F;
     constexpr double kHandleMargin = 15.0; // Hitbox size in pixels
 
-    [[nodiscard]] capture::DragMode hitTestSelection(double x, double y, double x0, double y0, double x1, double y1) {
-      const bool withinX = x >= x0 - kHandleMargin && x <= x1 + kHandleMargin;
-      const bool withinY = y >= y0 - kHandleMargin && y <= y1 + kHandleMargin;
+    [[nodiscard]] capture::DragMode
+    hitTestSelection(double x, double y, double x0, double y0, double x1, double y1, double margin) {
+      const bool withinX = x >= x0 - margin && x <= x1 + margin;
+      const bool withinY = y >= y0 - margin && y <= y1 + margin;
 
       if (!withinX || !withinY)
         return capture::DragMode::None;
@@ -59,10 +60,10 @@ namespace capture {
       const double distTop = std::abs(y - y0);
       const double distBottom = std::abs(y - y1);
 
-      bool nearLeft = distLeft <= kHandleMargin;
-      bool nearRight = distRight <= kHandleMargin;
-      bool nearTop = distTop <= kHandleMargin;
-      bool nearBottom = distBottom <= kHandleMargin;
+      bool nearLeft = distLeft <= margin;
+      bool nearRight = distRight <= margin;
+      bool nearTop = distTop <= margin;
+      bool nearBottom = distBottom <= margin;
 
       // Narrow selections can overlap opposing hit zones; bind the pointer to the nearer edge.
       if (nearLeft && nearRight) {
@@ -104,8 +105,8 @@ namespace capture {
 
     // Right-button resize zones: outer thirds of each axis pick the matching edge or corner.
     [[nodiscard]] capture::DragMode
-    hitTestRegionThirds(double x, double y, double x0, double y0, double x1, double y1) {
-      if (x < x0 - kHandleMargin || x > x1 + kHandleMargin || y < y0 - kHandleMargin || y > y1 + kHandleMargin) {
+    hitTestRegionThirds(double x, double y, double x0, double y0, double x1, double y1, double margin) {
+      if (x < x0 - margin || x > x1 + margin || y < y0 - margin || y > y1 + margin) {
         return capture::DragMode::None;
       }
 
@@ -610,7 +611,8 @@ namespace capture {
 
           if (m_regionModifierMask == 0) {
             // Default: a plain drag hits edges/corners, outside starts a new selection.
-            m_dragMode = hitTestSelection(globalX, globalY, x0, y0, x1, y1);
+            const double margin = std::max<double>(kHandleMargin, m_selectionBorderWidth);
+            m_dragMode = hitTestSelection(globalX, globalY, x0, y0, x1, y1, margin);
             if (m_dragMode == DragMode::None) {
               m_confirming = false;
               m_dragMode = DragMode::NewSelection;
@@ -620,7 +622,8 @@ namespace capture {
             m_dragMode = DragMode::Move;
           } else {
             // Modifier + right drag resizes from the outer thirds; the center does nothing.
-            m_dragMode = hitTestRegionThirds(globalX, globalY, x0, y0, x1, y1);
+            const double margin = std::max<double>(kHandleMargin, m_selectionBorderWidth);
+            m_dragMode = hitTestRegionThirds(globalX, globalY, x0, y0, x1, y1, margin);
             if (m_dragMode == DragMode::None) {
               m_dragging = false;
               m_dragButton = 0;
@@ -728,7 +731,9 @@ namespace capture {
               const double x1 = std::max(m_startGlobalX, m_currentGlobalX);
               const double y1 = std::max(m_startGlobalY, m_currentGlobalY);
 
-              DragMode hoverMode = hitTestSelection(globalX, globalY, x0, y0, x1, y1);
+              DragMode hoverMode = hitTestSelection(
+                  globalX, globalY, x0, y0, x1, y1, std::max<double>(kHandleMargin, m_selectionBorderWidth)
+              );
               inputPtr->setCursorShape(cursorShapeForDragMode(hoverMode));
             }
           } else {
