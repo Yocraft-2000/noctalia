@@ -1153,8 +1153,8 @@ namespace capture {
           inst->dimensionsBadge->setSize(badgeWidth, badgeHeight);
 
           const auto badgePos = placeRegionBadge(
-              surfaceW, surfaceH, holeX0 - kSelectionBorderWidth, holeY0 - kSelectionBorderWidth,
-              holeX1 + kSelectionBorderWidth, holeY1 + kSelectionBorderWidth, badgeWidth, badgeHeight
+              surfaceW, surfaceH, holeX0 - m_selectionBorderWidth, holeY0 - m_selectionBorderWidth,
+              holeX1 + m_selectionBorderWidth, holeY1 + m_selectionBorderWidth, badgeWidth, badgeHeight
           );
 
           inst->dimensionsBadge->setPosition(badgePos.x, badgePos.y);
