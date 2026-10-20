@@ -284,14 +284,25 @@ namespace capture {
       return "bar.annotate.fill-off";
     }
 
-    [[nodiscard]] AnnotationFillMode nextFillMode(AnnotationFillMode mode) {
-      switch (mode) {
-      case AnnotationFillMode::Off:
-        return AnnotationFillMode::Semi;
-      case AnnotationFillMode::Semi:
-        return AnnotationFillMode::Opaque;
-      case AnnotationFillMode::Opaque:
-        return AnnotationFillMode::Off;
+    [[nodiscard]] AnnotationFillMode nextFillMode(AnnotationFillMode mode, bool forward) {
+      if (forward) {
+        switch (mode) {
+        case AnnotationFillMode::Off:
+          return AnnotationFillMode::Semi;
+        case AnnotationFillMode::Semi:
+          return AnnotationFillMode::Opaque;
+        case AnnotationFillMode::Opaque:
+          return AnnotationFillMode::Off;
+        }
+      } else {
+        switch (mode) {
+        case AnnotationFillMode::Off:
+          return AnnotationFillMode::Opaque;
+        case AnnotationFillMode::Semi:
+          return AnnotationFillMode::Off;
+        case AnnotationFillMode::Opaque:
+          return AnnotationFillMode::Semi;
+        }
       }
       return AnnotationFillMode::Off;
     }
@@ -1206,6 +1217,7 @@ namespace capture {
       inst.cursorButton->setCustomPalette(palette);
     }
     inst.fillButton = addGhostButton("bucket-off", "bar.annotate.fill-off", [this]() { cycleFill(); });
+    inst.fillButton->setOnRightClick([this]() { cycleFill(false); });
     addSeparator();
 
     for (std::size_t i = 0; i < kSwatches.size(); ++i) {
@@ -2389,9 +2401,9 @@ namespace capture {
     requestRedrawAll();
   }
 
-  void AnnotationOverlay::cycleFill() {
+  void AnnotationOverlay::cycleFill(bool forward) {
     commitPendingText();
-    m_tools.fill = nextFillMode(m_tools.fill);
+    m_tools.fill = nextFillMode(m_tools.fill, forward);
     requestRedrawAll();
   }
 

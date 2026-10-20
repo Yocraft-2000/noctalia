@@ -151,7 +151,7 @@ namespace capture {
     void selectTool(AnnotationTool tool);
     void setToolColor(AnnotationColor color);
     void adjustToolWidth(double delta);
-    void cycleFill();
+    void cycleFill(bool forward = true);
     void undo();
     void redo();
     void requestExport(AnnotationExport action);
