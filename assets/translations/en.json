@@ -3296,7 +3296,7 @@
           "label": "Type to Launch"
         },
         "niri-overview-close-on-launch": {
-          "description": "Close the overview when an app launches from the launcher while the niri overview is open.",
+          "description": "Close the overview when an app launches from the launcher while the niri overview is open",
           "label": "Close on Launch"
         },
         "offline-mode": {
@@ -3555,7 +3555,7 @@
           "label": "Type to Launch"
         },
         "umbriel-overview-close-on-launch": {
-          "description": "Close the overview when an app launches from the launcher while the umbriel overview is open.",
+          "description": "Close the overview when an app launches from the launcher while the umbriel overview is open",
           "label": "Close on Launch"
         },
         "window-switcher-current-workspace-only": {
