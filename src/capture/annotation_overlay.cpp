@@ -279,7 +279,7 @@ namespace capture {
       case AnnotationFillMode::Semi:
         return "bar.annotate.fill-semi";
       case AnnotationFillMode::Opaque:
-        return "bar.annotate.fill-on";
+        return "bar.annotate.fill-opaque";
       }
       return "bar.annotate.fill-off";
     }

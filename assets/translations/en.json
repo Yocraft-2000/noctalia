@@ -45,7 +45,7 @@
       "cursor-not-captured": "Pointer toggle unavailable: this compositor does not support separate cursor capture",
       "done": "Apply the screenshot settings (Enter)",
       "fill-off": "Shape fill: off (f)",
-      "fill-on": "Shape fill: opaque (f)",
+      "fill-opaque": "Shape fill: opaque (f)",
       "fill-semi": "Shape fill: semi-transparent (f)",
       "freeze": "Freeze the screen under the ink (z)",
       "move-toolbar": "Drag to move the toolbar",
