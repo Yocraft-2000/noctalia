@@ -3734,7 +3734,7 @@
         "command-placeholder": "Shell command",
         "commands": {
           "annotate": {
-            "description": "Draw on the screen over running apps; press F or the Freeze button to capture the background",
+            "description": "Draw on the screen over running apps; press Z or the Freeze button to capture the background",
             "label": "Annotate screen"
           },
           "bar-auto-hide-set": {
