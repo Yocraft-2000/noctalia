@@ -3484,14 +3484,6 @@
           "description": "Send the captured PNG to a shell command on stdin",
           "label": "Pipe to Command"
         },
-        "screenshot-region-modifier": {
-          "description": "Modifier to move or resize a selected region: left-drag to move, right-drag to resize from the outer thirds (corners resize both axes). None (default) keeps the plain drag-to-adjust behavior",
-          "label": "Move/Resize Modifier"
-        },
-        "screenshot-remember-last-region": {
-          "description": "Pre-select the last region (including after cancel) on the next region screenshot",
-          "label": "Remember Last Region"
-        },
         "screenshot-region-border-width": {
           "description": "Width of the border around the selected region",
           "label": "Region Border Width"
@@ -3500,13 +3492,13 @@
           "description": "Opacity of the darkened area around the selected region",
           "label": "Region Dim Opacity"
         },
-        "screenshot-show-region-hint": {
-          "description": "Show the confirm hint with keybinds (Copy, Save, Cancel) while confirming a region",
-          "label": "Show Region Hint"
+        "screenshot-region-modifier": {
+          "description": "Modifier to move or resize a selected region: left-drag to move, right-drag to resize from the outer thirds (corners resize both axes). None (default) keeps the plain drag-to-adjust behavior",
+          "label": "Move/Resize Modifier"
         },
-        "screenshot-show-region-dimensions": {
-          "description": "Show the dimensions tooltip badge while resizing/moving a region",
-          "label": "Show Region Dimensions"
+        "screenshot-remember-last-region": {
+          "description": "Pre-select the last region (including after cancel) on the next region screenshot",
+          "label": "Remember Last Region"
         },
         "screenshot-save-to-file": {
           "description": "Write screenshots as PNG files to the output directory",
@@ -3515,6 +3507,14 @@
         "screenshot-show-cursor": {
           "description": "Include the mouse pointer in screenshots",
           "label": "Show Cursor"
+        },
+        "screenshot-show-region-dimensions": {
+          "description": "Show the size badge while resizing or moving a region",
+          "label": "Show Region Dimensions"
+        },
+        "screenshot-show-region-hint": {
+          "description": "Show the confirm hint with keybinds (Copy, Save, Cancel) while confirming a region",
+          "label": "Show Region Hint"
         },
         "screenshot-skip-annotate-on-copy-save": {
           "description": "Copy and Save in the region overlay deliver immediately; Enter and Space still open the editor",
