@@ -1181,13 +1181,8 @@ capture::AnnotationToolState ScreenshotService::loadAnnotationToolState() const 
     }
   }
   if (const auto fill = m_configService.stateString(kAnnotateStateOwner, "fill"); fill.has_value()) {
-    // Older state stored the toggle as "1"/"0"; "1" maps to Semi, matching the old 0.3 alpha.
-    if (*fill == "1") {
-      state.fill = capture::AnnotationFillMode::Semi;
-    } else if (*fill != "0") {
-      if (const auto parsed = capture::annotationFillModeFromName(*fill); parsed.has_value()) {
-        state.fill = *parsed;
-      }
+    if (const auto parsed = capture::annotationFillModeFromName(*fill); parsed.has_value()) {
+      state.fill = *parsed;
     }
   }
   if (const auto advanced = m_configService.stateString(kAnnotateStateOwner, "advanced_size"); advanced.has_value()) {
