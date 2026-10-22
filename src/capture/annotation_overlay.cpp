@@ -256,10 +256,6 @@ namespace capture {
       }
     }
 
-  } // namespace
-
-  namespace {
-
     const char* fillGlyph(AnnotationFillMode mode) {
       switch (mode) {
       case AnnotationFillMode::Off:
